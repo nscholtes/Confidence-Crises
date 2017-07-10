@@ -44,7 +44,7 @@ fileID_IBN = fopen(strcat('Logs/Network Generation/IBN_',datestr(datetime('today
 %fileID_OPN = fopen(strcat('Logs/Network Generation/OPN_',datestr(datetime('today')),'.txt'),'w');
 
 % Select whether to create a detailed simulation log  (Input: Y/N)
-writeoption = 'N';
+writeoption = 'Y';
 
 % Select whether to plot network in Gephi or MATLAB (Input: Gephi/MATLAB)
 graphoption = 'MATLAB';
@@ -134,8 +134,8 @@ calibratedrate_vec = [r_z r_d r_e r_b];
 %%% MRR = Minimum Reserve Requirement
 %%% CR  = Capital ratio
 
-%CR = 0.08;
-%LR = 0.03;
+CR = 0.08;
+LR = 0.03;
 
 %--------------------------------------------------------------------------
 % Generating the network
@@ -203,11 +203,11 @@ for t=1:T
         Phase0(banks,ActiveBanks,a,BS_parsvec,T,t,IBN_adjmat(:,:,x),NMT_matrices,OPN_adjmat(:,:,x),assetprices);
 % Phase 1: Deposit shock, investment decision, interbank market
    [banks,DBV,DLV,NT_matrices,NNT_matrices] = ...
-        Phase1(banks,ActiveBanks,IBN_adjmat(:,:,x),n_banks,BS_parsvec,information,calibratedrate_vec,NT_matrices,NNT_matrices,t,fileID_D,writeoption);
+        Phase1(banks,ActiveBanks,IBN_adjmat(:,:,x),n_banks,BS_parsvec,information,calibratedrate_vec,NT_matrices,NNT_matrices,t,fileID_D);
 % Phase 2: Asset price shock, loan repayment, firesales and second round effects
    [banks,assetprices,OPN_adjmat(:,:,t),NMT_matrices,NNT_matrices,TM_matrices] = ...
         Phase2(banks,ActiveBanks,ActiveAssets,OPN_adjmat(:,:,x),state_vars,BS_parsvec(5),...
-        NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D,writeoption);
+        NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D);
 % Phase 3: Removal of insolvent banks and (possible) central bank intervention
    [banks,banksfail,n_banks,IBN_adjmat(:,:,t),OPN_adjmat(:,:,t),FailCount_vec(t),FailedBankID_mat(t,:),ActiveAssets,num_InactiveAssets(t),assetprices(t,:)] =  ...
        Phase3(banks,banksfail,n_banks,m_assets,calibratedrate_vec(1),IBN_adjmat(:,:,x),OPN_adjmat(:,:,x),assetprices(t,:),...
@@ -228,8 +228,7 @@ for t=1:T
 end
 
 clearvars a a_max a_min alpha av_div beta BS_parsvec calibrateratevec d_assetprices d_firesales...
-DBV DLV dTOT_matrices eashock_LB_C eashock_LB_S eashock_UB_C eashock_UB_S gamma m_assets market_depth_C market_depth_S...
-MRR num_shocked_ea_C num_shocked_ea_S r_b r_d r_e r_z shocktime SPF statevar_vec theta
+DBV DLV dTOT_matrices eashock_LB_C eashock_LB_S eashock_UB_C eashock_UB_S 
 toc
 %--------------------------------------------------------------------------
 %% Model output

@@ -57,7 +57,7 @@ for i = ActiveBanks
                (banks(j).balancesheet.assets.external_assets(t,tau)./banks(j).balancesheet.assets.num_external_assets(t));
            
             banks(j).balancesheet.assets.external_asset_port((4*t),:) = banks(j).balancesheet.assets.external_asset_holdings((4*t),:).*...
-                AP(banks(j).balancesheet.assets.external_asset_ids);
+                assetprices((4*t),banks(j).balancesheet.assets.external_asset_ids)
            
     
         end
