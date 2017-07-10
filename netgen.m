@@ -102,7 +102,7 @@ for k=1:n_replicates
         adjacency_matrix(:,:,k) = tril(adjacency_matrix(:,:,k),0)+...
         triu(adjacency_matrix(:,:,k)',1);
     
-    if issymmetric(adjacency_matrix(:,:,k))
+    if chksymmetry(adjacency_matrix(:,:,k))
         fprintf(fileID_IBN,'Adjacency matrix is symmetric. Network is undirected\r\n');
    else
         fprintf(fileID_IBN,'Error! Adjacency matrix is not symmetric\r\n');
