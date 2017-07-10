@@ -1,5 +1,5 @@
 function [banks,DBV,DLV,NT_matrices,NNT_matrices]...
-    =Phase1(banks,ActiveBanks,ibn_adjmat,n_banks,BS_parsvec,information,calibratedrate_vec,NT_matrices,NNT_matrices,t,fileID_D)
+    =Phase1(banks,ActiveBanks,ibn_adjmat,n_banks,BS_parsvec,information,calibratedrate_vec,NT_matrices,NNT_matrices,t,fileID_D,writeoption)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -17,7 +17,7 @@ function [banks,DBV,DLV,NT_matrices,NNT_matrices]...
 %-------------------------------------------------------------------------
 
 tau = 2;
-%fprintf(1,'Current phase: %d\n',tau-1);
+%myprint(writeoption,1,'Current phase: %d\n',tau-1);
 tol = 1.e-6;
 
 % Collecting shock information
@@ -267,32 +267,35 @@ end
 %% BORROWER REQUESTS
 %-------------------------------------------------------------------------
 
-fprintf(fileID_D,'++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\r\n');
-fprintf(fileID_D,'--------------------------------------------------------------------- Period %d Output -----------------------------------------------------------------------\r\n',t);
-fprintf(fileID_D,'++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\r\n');
-fprintf(fileID_D,'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\r\n');
-fprintf(fileID_D,'Phase 1\r\n');
-fprintf(fileID_D,'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\r\n');
-fprintf(fileID_D,'**********************************************************************************\r\n');
-fprintf(fileID_D,'**************** Information in the current simulation is %s ****************\r\n',information);
-fprintf(fileID_D,'**********************************************************************************\r\n');
+myprint(writeoption,fileID_D,'++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\r\n');
+myprint(writeoption,fileID_D,'--------------------------------------------------------------------- Period %d Output -----------------------------------------------------------------------\r\n',t);
+myprint(writeoption,fileID_D,'++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\r\n');
+myprint(writeoption,fileID_D,'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\r\n');
+myprint(writeoption,fileID_D,'Phase 1\r\n');
+myprint(writeoption,fileID_D,'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\r\n');
+myprint(writeoption,fileID_D,'**********************************************************************************\r\n');
+myprint(writeoption,fileID_D,'**************** Information in the current simulation is %s ****************\r\n',information);
+myprint(writeoption,fileID_D,'**********************************************************************************\r\n');
 
-fprintf(fileID_D,'====================================================================================================================================================================\r\n');
-fprintf(fileID_D,'Step 1: Borrower requests\r\n');
-fprintf(fileID_D,'====================================================================================================================================================================\r\n');
+myprint(writeoption,fileID_D,'====================================================================================================================================================================\r\n');
+myprint(writeoption,fileID_D,'Step 1: Borrower requests\r\n');
+myprint(writeoption,fileID_D,'====================================================================================================================================================================\r\n');
 
 for i = 1:numel(DBV)
     
     % Variables associated to lenders are set = NaN
     
-    banks(DBV(i)).IBM.L_noCP(t)         = NaN;
-    banks(DBV(i)).IBM.L_bil_requests    = NaN;
-    banks(DBV(i)).IBM.L_tot_requests(t) = NaN;
+    banks(DBV(i)).IBM.L_noCP(t)           = NaN;
+    banks(DBV(i)).IBM.L_bil_requests      = NaN;
+    banks(DBV(i)).IBM.L_tot_requests(t)   = NaN;
     
-    banks(DBV(i)).IBM.L_bil_loans(t)    = NaN;
-    banks(DBV(i)).IBM.L_tot_loans(t)    = NaN;
+    banks(DBV(i)).IBM.L_bil_loans(t)      = NaN;
     
-    banks(DBV(i)).IBM.hoarding(t)     = NaN;
+    banks(DBV(i)).IBM.L_prov_tot_loans(t) = NaN;
+    banks(DBV(i)).IBM.L_tot_loans(t)      = NaN;
+    
+    banks(DBV(i)).IBM.hoarding(t)             = NaN;
+    banks(DBV(i)).IBM.L_hoardingmultiplier(t) = NaN;
 
 % Determining  borrowers' desired investment as a function of shock size
 % (period 1) or average past investments (periods > 1)
@@ -312,8 +315,8 @@ end
     
     if isempty(banks(DBV(i)).final_cps)
         
-        fprintf(fileID_D,'Borrower %d has NO lending counterparties in period %d\r\n',DBV(i),t);
-        fprintf(fileID_D,'----------------------------------------------------------------------------------\r\n');
+        myprint(writeoption,fileID_D,'Borrower %d has NO lending counterparties in period %d\r\n',DBV(i),t);
+        myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
         
         banks(DBV(i)).IBM.B_bil_requests = 0;
         banks(DBV(i)).balancesheet.liabilities.IB_borrowing(t) = 0;
@@ -325,8 +328,8 @@ end
           
     else
     
-        fprintf(fileID_D,'Borrower %d has %d lending counterparties in period %d\r\n',DBV(i),banks(DBV(i)).num_final_cps(t),t);
-        fprintf(fileID_D,'--> Borrower %d has %d counterparties who are borrowers themselves in period %d\r\n',DBV(i),banks(DBV(i)).numnonlending_cps(t),t);
+        myprint(writeoption,fileID_D,'Borrower %d has %d lending counterparties in period %d\r\n',DBV(i),banks(DBV(i)).num_final_cps(t),t);
+        myprint(writeoption,fileID_D,'--> Borrower %d has %d counterparties who are borrowers themselves in period %d\r\n',DBV(i),banks(DBV(i)).numnonlending_cps(t),t);
         
         banks(DBV(i)).IBM.B_tot_requests(t) = banks(DBV(i)).balancesheet.assets.des_investment(t);
         
@@ -337,9 +340,9 @@ end
         
         banks(DBV(i)).IBM.B_noCP(t) = 0;
         
-        fprintf(fileID_D,'Borrower %d requests %.3f from each  of the %d lending counterparties in period %d\r\n',...
+        myprint(writeoption,fileID_D,'Borrower %d requests %.3f from each  of the %d lending counterparties in period %d\r\n',...
             DBV(i),(1./banks(DBV(i)).num_final_cps(t)).*banks(DBV(i)).IBM.B_tot_requests(t),banks(DBV(i)).num_final_cps(t),t);
-        fprintf(fileID_D,'----------------------------------------------------------------------------------\r\n');
+        myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
         
     end
 end
@@ -362,9 +365,9 @@ borr_req_mat(:,:,t) = borr_req_mat(:,:,t)';
 % Redistribution of available liquidity (cash reserves+interest on external
 % assets - interest payments to depositors) across borrowing counterparties
 
-fprintf(fileID_D,'====================================================================================================================================================================\r\n');
-fprintf(fileID_D,'Step 2: Lender offers\r\n');
-fprintf(fileID_D,'====================================================================================================================================================================\r\n');
+myprint(writeoption,fileID_D,'====================================================================================================================================================================\r\n');
+myprint(writeoption,fileID_D,'Step 2: Lender offers\r\n');
+myprint(writeoption,fileID_D,'====================================================================================================================================================================\r\n');
 
 for i = 1:numel(DLV)
     
@@ -395,13 +398,15 @@ for i = 1:numel(DLV)
    
     if isempty(banks(DLV(i)).borrowing_cps)
         
-        fprintf(fileID_D,'Lender %d has NO borrowing counterparties in period %d\r\n',DLV(i),t);
-        fprintf(fileID_D,'----------------------------------------------------------------------------------\r\n');
+        myprint(writeoption,fileID_D,'Lender %d has NO borrowing counterparties in period %d\r\n',DLV(i),t);
+        myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
         
              
-        banks(DLV(i)).IBM.hoarding(t)     = 0; % Lender hoarding
-        banks(DLV(i)).IBM.L_bil_loans     = 0;      
-        banks(DLV(i)).IBM.L_tot_loans(t)  = 0;
+        banks(DLV(i)).IBM.hoarding(t)             = 0; % Lender hoarding
+        banks(DLV(i)).IBM.L_hoardingmultiplier(t) = 0;
+        banks(DLV(i)).IBM.L_bil_loans             = 0;
+        banks(DLV(i)).IBM.L_prov_tot_loans(t)     = 0;
+        banks(DLV(i)).IBM.L_tot_loans(t)          = 0;
         
         banks(DLV(i)).IBM.L_noCP(t) = 1;
         
@@ -409,12 +414,13 @@ for i = 1:numel(DLV)
         
     else
         
-        fprintf(fileID_D,'Lender %d has %d counterparties\r\n',DLV(i),banks(DLV(i)).num_counterparties(t));
-        fprintf(fileID_D,'--> Lender %d has %d borrowing counterparties in period %d\r\n',DLV(i),banks(DLV(i)).numborrowing_cps(t),t);
-        fprintf(fileID_D,'Lender %d received loan requests =  %.3f  in period %d\r\n',DLV(i),banks(DLV(i)).IBM.L_tot_requests(t),t);
+        myprint(writeoption,fileID_D,'Lender %d has %d counterparties\r\n',DLV(i),banks(DLV(i)).num_counterparties(t));
+        myprint(writeoption,fileID_D,'--> Lender %d has %d borrowing counterparties in period %d\r\n',DLV(i),banks(DLV(i)).numborrowing_cps(t),t);
+        myprint(writeoption,fileID_D,'Lender %d received loan requests =  %.3f  in period %d\r\n',DLV(i),banks(DLV(i)).IBM.L_tot_requests(t),t);
         
-        banks(DLV(i)).IBM.L_noCP(t)    = 0;
-        banks(DLV(i)).IBM.hoarding(t)  = 0;
+        banks(DLV(i)).IBM.L_noCP(t)               = 0;
+        banks(DLV(i)).IBM.hoarding(t)             = 0;
+        banks(DLV(i)).IBM.L_hoardingmultiplier(t) = 0;
   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Total lending step 1: Compare total requests with available cash reserves
@@ -422,7 +428,7 @@ for i = 1:numel(DLV)
                    
         banks(DLV(i)).IBM.L_prov_tot_loans(t) = min(banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR),banks(DLV(i)).IBM.L_tot_requests(t));
         
-        fprintf(fileID_D,'*1.CHECK AVAILABLE LIQUIDITY*\r\n');
+        myprint(writeoption,fileID_D,'*1.CHECK AVAILABLE LIQUIDITY*\r\n');
         
         % CASE I: Total requests <= Available reserves --> Lenders makes all requested loans.
             
@@ -432,9 +438,9 @@ for i = 1:numel(DLV)
                                 
                 banks(DLV(i)).IBM.L_bil_loans = banks(DLV(i)).IBM.L_bil_requests;
                            
-                fprintf(fileID_D,'Lender %d has sufficient reserves (%.3f) to match all requests (%.3f) in period %d\r\n',DLV(i),...
+                myprint(writeoption,fileID_D,'Lender %d has sufficient reserves (%.3f) to match all requests (%.3f) in period %d\r\n',DLV(i),...
                     banks(DLV(i)).balancesheet.assets.cash(t,tau),banks(DLV(i)).IBM.L_tot_requests(t),t);    
-                fprintf(fileID_D,'----------------------------------------------------------------------------------\r\n');
+                myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
                 
          % CASE II:  Total requests > available reserves --> Lender allocates maximum allowable which is divided equally across counterparties and
          % compared to each bilateral request individually using the same min{allocated bilateral funds; request} approach.
@@ -452,10 +458,10 @@ for i = 1:numel(DLV)
                         
                         banks(DLV(i)).IBM.L_tot_loans(t) = sum(banks(DLV(i)).IBM.L_bil_loans);
                         
-                        fprintf(fileID_D,'Total requests (%.3f) to Lender %d exceed available reserves (%.3f). Allocate %.3f in period %d\r\n',...
+                        myprint(writeoption,fileID_D,'Total requests (%.3f) to Lender %d exceed available reserves (%.3f). Allocate %.3f in period %d\r\n',...
                             banks(DLV(i)).IBM.L_tot_requests(t),DLV(i),...
                             banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR),banks(DLV(i)).IBM.L_tot_loans(t),t);
-                        fprintf(fileID_D,'----------------------------------------------------------------------------------\r\n');  
+                        myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');  
             else
                 disp('Error in lender reserve allocation')
             end  
@@ -474,7 +480,7 @@ for i = 1:numel(DLV)
                     if shocksign_mat(DLV(i),t_search) == -1 && banks(DLV(i)).IBM.B_tot_requests(t_search)~=0 ...
                             && banks(DLV(i)).IBM.B_tot_loans(t_search)~=0
                         
-                        fprintf(fileID_D,'*2. HOARDING DECISION*\r\n');
+                        myprint(writeoption,fileID_D,'*2. HOARDING DECISION*\r\n');
                         
                         banks(DLV(i)).IBM.L_hoardingmultiplier(t) = (banks(DLV(i)).IBM.B_tot_loans(t_search)./...
                             banks(DLV(i)).IBM.B_tot_requests(t_search));
@@ -487,21 +493,16 @@ for i = 1:numel(DLV)
                             banks(DLV(i)).IBM.hoarding(t) = 0;
                         end
                         
-                        fprintf(fileID_D,'Lender %d was a borrower in period %d, receiving %.3f percent of total requested loans\r\n',...
+                        myprint(writeoption,fileID_D,'Lender %d was a borrower in period %d, receiving %.3f percent of total requested loans\r\n',...
                             DLV(i),t_search,banks(DLV(i)).IBM.B_tot_loans(t_search)/banks(DLV(i)).IBM.B_tot_requests(t_search)*100);
-                        
-                        currlender        = DLV(i)
-                        availablereserves = banks(DLV(i)).IBM.L_tot_loans(t) 
-                        loanrequests      = banks(DLV(i)).IBM.L_tot_requests(t)
-                        maxpossalloc      = banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)
-                        
+                              
                         if abs(banks(DLV(i)).IBM.L_tot_loans(t) -  banks(DLV(i)).IBM.L_hoardingmultiplier(t).*banks(DLV(i)).IBM.L_tot_requests(t))< tol
                             
                             %banks(DLV(i)).IBM.L_tot_loans(t) == banks(DLV(i)).IBM.L_tot_requests(t)
                                             
                             banks(DLV(i)).IBM.L_bil_loans = banks(DLV(i)).IBM.L_bil_requests;
                         
-                            fprintf(fileID_D,'--> After hoarding, Lender %d has sufficient reserves to match all requests in period %d\r\n',DLV(i),t);
+                            myprint(writeoption,fileID_D,'--> After hoarding, Lender %d has sufficient reserves to match all requests in period %d\r\n',DLV(i),t);
                         
                         elseif abs(banks(DLV(i)).IBM.L_tot_loans(t) -  banks(DLV(i)).IBM.L_hoardingmultiplier(t).*banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)) < tol
                             
@@ -513,7 +514,7 @@ for i = 1:numel(DLV)
                                     (banks(DLV(i)).IBM.L_tot_loans(t))/(banks(DLV(i)).numborrowing_cps(t)));
                             end
                             
-                            fprintf(fileID_D,'--> After hoarding, Total requests to Lender %d exceed available reserves. Allocate %.3f in period %d\r\n',...
+                            myprint(writeoption,fileID_D,'--> After hoarding, Total requests to Lender %d exceed available reserves. Allocate %.3f in period %d\r\n',...
                                 DLV(i),banks(DLV(i)).IBM.L_tot_loans(t),t);
                             
                              banks(DLV(i)).IBM.L_tot_loans(t) = sum(banks(DLV(i)).IBM.L_bil_loans);
@@ -523,11 +524,11 @@ for i = 1:numel(DLV)
                              
                         end
                              
-                        fprintf(fileID_D,'Lender %d lent out %.3f and hoarded %.3f in period %d\r\n',...
+                        myprint(writeoption,fileID_D,'Lender %d lent out %.3f and hoarded %.3f in period %d\r\n',...
                             DLV(i),banks(DLV(i)).IBM.L_tot_loans(t),banks(DLV(i)).IBM.hoarding(t),t);
                         
                         for j = 1:banks(DLV(i)).numborrowing_cps(t) 
-                            fprintf(fileID_D,'--> Borrower %d requested %.3f and received %.3f from Lender %d in period %d\r\n' ,...
+                            myprint(writeoption,fileID_D,'--> Borrower %d requested %.3f and received %.3f from Lender %d in period %d\r\n' ,...
                             banks(DLV(i)).borrowing_cps(j),banks(DLV(i)).IBM.L_bil_requests(j),banks(DLV(i)).IBM.L_bil_loans(j),DLV(i),t);
                         end   
 
@@ -536,7 +537,7 @@ for i = 1:numel(DLV)
                     t_search = t_search -1; 
                                 
                 end
-                fprintf(fileID_D,'----------------------------------------------------------------------------------\r\n');
+                myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
         end          
     end
                      
@@ -555,9 +556,9 @@ borr_rec_mat = lender_lend_mat;
 %%% Borrowers observe how much of the requested liquidity they were able to obtain on the interbank market
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fprintf(fileID_D,'====================================================================================================================================================================\r\n');
-fprintf(fileID_D,'Step 3: Borrower response to offers\r\n');
-fprintf(fileID_D,'====================================================================================================================================================================\r\n');
+myprint(writeoption,fileID_D,'====================================================================================================================================================================\r\n');
+myprint(writeoption,fileID_D,'Step 3: Borrower response to offers\r\n');
+myprint(writeoption,fileID_D,'====================================================================================================================================================================\r\n');
 
 for i = 1:numel(DBV)
     
@@ -591,12 +592,12 @@ for i = 1:numel(DBV)
         % Make desired investment
         banks(DBV(i)).balancesheet.assets.investment(t) = banks(DBV(i)).balancesheet.assets.des_investment(t);
         
-        fprintf(fileID_D,'Borrower %d obtained the requested loans and made the desired investment of %.3f in period %d\r\n',...
+        myprint(writeoption,fileID_D,'Borrower %d obtained the requested loans and made the desired investment of %.3f in period %d\r\n',...
             DBV(i),banks(DBV(i)).balancesheet.assets.investment(t),t);
         
-        fprintf(fileID_D,'Borrower %d loan/request = %.3f percent in period %d\r\n',...
+        myprint(writeoption,fileID_D,'Borrower %d loan/request = %.3f percent in period %d\r\n',...
             DBV(i),banks(DBV(i)).IBM.B_tot_loans(t)/banks(DBV(i)).IBM.B_tot_requests(t)*100,t);
-        fprintf(fileID_D,'----------------------------------------------------------------------------------\r\n');
+        myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
                  
 % Case 2: Obtain less than requested liquidity
   
@@ -610,7 +611,7 @@ for i = 1:numel(DBV)
             
             banks(DBV(i)).balancesheet.assets.investment(t) = banks(DBV(i)).balancesheet.assets.des_investment(t);
                        
-            fprintf(fileID_D,'Borrower %d is short %.3f required to make desired investment of %.3f in period %d\r\n',...
+            myprint(writeoption,fileID_D,'Borrower %d is short %.3f required to make desired investment of %.3f in period %d\r\n',...
                 DBV(i),banks(DBV(i)).IBM.B_tot_requests(t)-banks(DBV(i)).IBM.B_tot_loans(t),...
                 banks(DBV(i)).balancesheet.assets.des_investment(t),t);
         
@@ -619,13 +620,13 @@ for i = 1:numel(DBV)
             banks(DBV(i)).balancesheet.assets.cash(t,tau)= banks(DBV(i)).balancesheet.assets.cash(t,tau)- ...
                (banks(DBV(i)).IBM.B_tot_requests(t) - banks(DBV(i)).IBM.B_tot_loans(t));
          
-            fprintf(fileID_D,'--> Allocate %.3f from reserves. Updated reserves given by: %.3f\r\n',...
+            myprint(writeoption,fileID_D,'--> Allocate %.3f from reserves. Updated reserves given by: %.3f\r\n',...
                 banks(DBV(i)).IBM.B_tot_requests(t) - banks(DBV(i)).IBM.B_tot_loans(t),banks(DBV(i)).balancesheet.assets.cash(t,tau));
 
-            fprintf(fileID_D,' --> Borrower %d loan/request = %.3f percent in period %d\r\n',...
+            myprint(writeoption,fileID_D,' --> Borrower %d loan/request = %.3f percent in period %d\r\n',...
             DBV(i),banks(DBV(i)).IBM.B_tot_loans(t)/banks(DBV(i)).IBM.B_tot_requests(t)*100,t);   
         
-        fprintf(fileID_D,'----------------------------------------------------------------------------------\r\n');
+        myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
         
 % Case 2-2: Allocate available reserves to offset deposit shock: Insufficient reserves, allocate up to maximum allowable
 
@@ -635,15 +636,15 @@ for i = 1:numel(DBV)
             
             banks(DBV(i)).balancesheet.assets.investment(t) = banks(DBV(i)).IBM.B_tot_loans(t) + banks(DBV(i)).balancesheet.assets.cash(t,tau)*(1-MRR);
 
-            fprintf(fileID_D,'Borrower %d allocates all available reserves (%.3f) towards investment in period %d\r\n',...
+            myprint(writeoption,fileID_D,'Borrower %d allocates all available reserves (%.3f) towards investment in period %d\r\n',...
                 DBV(i),banks(DBV(i)).balancesheet.assets.cash(t,tau)*(1-MRR),t);
             
-            fprintf(fileID_D,'Final investment of %.3f compared to desired level of %.3f',...
+            myprint(writeoption,fileID_D,'Final investment of %.3f compared to desired level of %.3f',...
                banks(DBV(i)).balancesheet.assets.investment(t),banks(DBV(i)).balancesheet.assets.des_investment(t));
             
-            fprintf(fileID_D,'Borrower %d loan/request = %.3f percent in period %d\r\n',...
+            myprint(writeoption,fileID_D,'Borrower %d loan/request = %.3f percent in period %d\r\n',...
                 DBV(i),banks(DBV(i)).IBM.B_tot_loans(t)/banks(DBV(i)).IBM.B_tot_requests(t)*100,t);
-            fprintf(fileID_D,'----------------------------------------------------------------------------------\r\n');
+            myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
             
         else
             disp('Error in borrower loan reception!')
@@ -656,34 +657,34 @@ for i = 1:numel(DBV)
         
         banks(DBV(i)).IBM.B_suff_loans(t) = 0;
 
-        fprintf(fileID_D,'Borrower  %d has no eligible counterparties (so no requests) in period %d\r\n',DBV(i),t);
+        myprint(writeoption,fileID_D,'Borrower  %d has no eligible counterparties (so no requests) in period %d\r\n',DBV(i),t);
         
         if (1-MRR)*banks(DBV(i)).balancesheet.assets.cash(t,tau) >= banks(DBV(i)).balancesheet.assets.des_investment(t)
             
              banks(DBV(i)).balancesheet.assets.investment(t) = banks(DBV(i)).balancesheet.assets.des_investment(t);
              
-            fprintf(fileID_D,'--> Sufficient reserves to make investment (%.3f>%.3f)\r\n',...
+            myprint(writeoption,fileID_D,'--> Sufficient reserves to make investment (%.3f>%.3f)\r\n',...
             banks(DBV(i)).balancesheet.assets.cash(t,tau),banks(DBV(i)).balancesheet.assets.des_investment(t));
              
              banks(DBV(i)).balancesheet.assets.cash(t,tau)   = banks(DBV(i)).balancesheet.assets.cash(t,tau) - ...
                  banks(DBV(i)).balancesheet.assets.investment(t);
             
-            fprintf(fileID_D,'--> Updated reserves given by %.3f\r\n',banks(DBV(i)).balancesheet.assets.cash(t,tau));
+            myprint(writeoption,fileID_D,'--> Updated reserves given by %.3f\r\n',banks(DBV(i)).balancesheet.assets.cash(t,tau));
         
         elseif (1-MRR)*banks(DBV(i)).balancesheet.assets.cash(t,tau) < banks(DBV(i)).balancesheet.assets.des_investment(t)
             
             banks(DBV(i)).balancesheet.assets.investment(t) = (1-MRR)*banks(DBV(i)).balancesheet.assets.cash(t,tau);
             
-            fprintf(fileID_D,'--> Insufficient reserves (%.3f<%3f) to make investment\r\n',...
+            myprint(writeoption,fileID_D,'--> Insufficient reserves (%.3f<%3f) to make investment\r\n',...
             (1-MRR)*banks(DBV(i)).balancesheet.assets.cash(t,tau),banks(DBV(i)).balancesheet.assets.des_investment(t));
             
             banks(DBV(i)).balancesheet.assets.cash(t,tau)   = MRR*banks(DBV(i)).balancesheet.assets.cash(t,tau);
             
-            fprintf(fileID_D,'Allocate up to maximum allowable. Updated reserves given by %.3f\r\n',...
+            myprint(writeoption,fileID_D,'Allocate up to maximum allowable. Updated reserves given by %.3f\r\n',...
                 banks(DBV(i)).balancesheet.assets.cash(t,tau));
         end 
                   
-        fprintf(fileID_D,'----------------------------------------------------------------------------------\r\n');    
+        myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');    
     else
         disp('Error in borrower IB loan decision!')
      end
@@ -697,9 +698,9 @@ end
 %counterparties hit by negative shock. 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fprintf(fileID_D,'====================================================================================================================================================================\r\n');
-fprintf(fileID_D,'Step 4: Lender interest rate setting\r\n');
-fprintf(fileID_D,'====================================================================================================================================================================\r\n');
+myprint(writeoption,fileID_D,'====================================================================================================================================================================\r\n');
+myprint(writeoption,fileID_D,'Step 4: Lender interest rate setting\r\n');
+myprint(writeoption,fileID_D,'====================================================================================================================================================================\r\n');
 
 % Initialisation: interbank rate set at (calibrated) risk-free rate
 
@@ -713,8 +714,8 @@ for i = 1:numel(DLV)
         IBrate_mat(DLV(i),:,t)          = expost_adjmat(DLV(i),:);
         adj_lender_lend_mat(DLV(i),:,t) = expost_adjmat(DLV(i),:);
                 
-        fprintf(fileID_D,'Lender %d received no requests in period %d\r\n',DLV(i),t);
-        fprintf(fileID_D,'-------------------------------------------------------------------------------------------\r\n');
+        myprint(writeoption,fileID_D,'Lender %d received no requests in period %d\r\n',DLV(i),t);
+        myprint(writeoption,fileID_D,'-------------------------------------------------------------------------------------------\r\n');
     
     else       
         if t==1
@@ -726,14 +727,14 @@ for i = 1:numel(DLV)
             banks(DLV(i)).IBM.L_tot_exp_repay(t) = sum(adj_lender_lend_mat(DLV(i),banks(DLV(i)).borrowing_cps,t));
             
             for j=1:banks(DLV(i)).numborrowing_cps(t)
-                fprintf(fileID_D,'--> Lender %d sets a counterparty risk premium of %.3f on borrower %d in period %d\r\n',...
+                myprint(writeoption,fileID_D,'--> Lender %d sets a counterparty risk premium of %.3f on borrower %d in period %d\r\n',...
                     DLV(i),RP_mat(DLV(i),banks(DLV(i)).borrowing_cps(j))-1,banks(DLV(i)).borrowing_cps(j),t);
                     
-                fprintf(fileID_D,'--> The interbank rate for this transaction is %.2f percent\r\n',...
+                myprint(writeoption,fileID_D,'--> The interbank rate for this transaction is %.2f percent\r\n',...
                     (IBrate_mat(DLV(i),banks(DLV(i)).borrowing_cps(j),t)-1)*100);
             
             end
-               fprintf(fileID_D,'-------------------------------------------------------------------------------------------\r\n');
+               myprint(writeoption,fileID_D,'-------------------------------------------------------------------------------------------\r\n');
 
         end
     
@@ -821,18 +822,18 @@ for i = 1:numel(DLV)
                         pastLB_Mrel_rep    = sprintf(' %.3g ',pastLB_repstore(CD_index(j,:)));
                         pastLB_Mrel_ratio  = sprintf(' %.3g ',(pastLB_repstore(CD_index(j,:))./pastLB_loanstore(CD_index(j,:)))*100);
                         
-                        fprintf(fileID_D,'Lender %d and borrower %d had MULTIPLE past L/B relationships in periods: [%s]\r\n',...
+                        myprint(writeoption,fileID_D,'Lender %d and borrower %d had MULTIPLE past L/B relationships in periods: [%s]\r\n',...
                         DLV(i),CD_ids(j),pastLB_Mrel_t);
                     
-                            fprintf(fileID_D,'--> Past loans: %s\r\n',pastLB_Mrel_loan);
-                            fprintf(fileID_D,'--> Past repayment: %s\r\n',pastLB_Mrel_rep);
-                            fprintf(fileID_D,'--> Loan to repayment ratio: %s\r\n',pastLB_Mrel_ratio);
-                            fprintf(fileID_D,'--> Sets a counterparty risk premium of %.3f in period %d\r\n',...
+                            myprint(writeoption,fileID_D,'--> Past loans: %s\r\n',pastLB_Mrel_loan);
+                            myprint(writeoption,fileID_D,'--> Past repayment: %s\r\n',pastLB_Mrel_rep);
+                            myprint(writeoption,fileID_D,'--> Loan to repayment ratio: %s\r\n',pastLB_Mrel_ratio);
+                            myprint(writeoption,fileID_D,'--> Sets a counterparty risk premium of %.3f in period %d\r\n',...
                                 RP_mat(DLV(i),CD_ids(j))-1,t);
-                            fprintf(fileID_D,'==> The interbank rate for this transaction is %.2f percent\r\n',...
+                            myprint(writeoption,fileID_D,'==> The interbank rate for this transaction is %.2f percent\r\n',...
                                 (IBrate_mat(DLV(i),CD_ids(j),t)-1)*100);
                             
-                            fprintf(fileID_D,'-------------------------------------------------------------------------------------------\r\n');
+                            myprint(writeoption,fileID_D,'-------------------------------------------------------------------------------------------\r\n');
                         
                         CD_index = [];
                         %noCD_index = [];
@@ -853,18 +854,18 @@ for i = 1:numel(DLV)
                         adj_lender_lend_mat(DLV(i),noCD_ids(j),t) = (IBrate_mat(DLV(i),noCD_ids(j),t))...
                             .*lender_lend_mat(DLV(i),noCD_ids(j));
                                                 
-                        fprintf(fileID_D,'Lender %d and borrower %d had ONE past L/B relationship in period %d\r\n',...
+                        myprint(writeoption,fileID_D,'Lender %d and borrower %d had ONE past L/B relationship in period %d\r\n',...
                             DLV(i),noCD_ids(j),pastLB_tstore(noCD_index(j,:)));
                         
-                            fprintf(fileID_D,'--> Expected repayment: %.3f\r\n',pastLB_loanstore(noCD_index(j,:)));
-                            fprintf(fileID_D,'--> Actual repayment: %.3f\r\n',pastLB_repstore(noCD_index(j,:)));
-                            fprintf(fileID_D,'--> Repayment rate: %d percent\r\n',(pastLB_repstore(noCD_index(j,:))./pastLB_loanstore(noCD_index(j,:)))*100);
-                            fprintf(fileID_D,'--> Sets a counterparty risk premium of %.2f in period %d\r\n',...
+                            myprint(writeoption,fileID_D,'--> Expected repayment: %.3f\r\n',pastLB_loanstore(noCD_index(j,:)));
+                            myprint(writeoption,fileID_D,'--> Actual repayment: %.3f\r\n',pastLB_repstore(noCD_index(j,:)));
+                            myprint(writeoption,fileID_D,'--> Repayment rate: %d percent\r\n',(pastLB_repstore(noCD_index(j,:))./pastLB_loanstore(noCD_index(j,:)))*100);
+                            myprint(writeoption,fileID_D,'--> Sets a counterparty risk premium of %.2f in period %d\r\n',...
                                 RP_mat(DLV(i),noCD_ids(j))-1,t);
-                            fprintf(fileID_D,'==> The interbank rate for this transaction is %.2f percent\r\n',...
+                            myprint(writeoption,fileID_D,'==> The interbank rate for this transaction is %.2f percent\r\n',...
                                 (IBrate_mat(DLV(i),noCD_ids(j),t)-1)*100);
                     
-                     fprintf(fileID_D,'-------------------------------------------------------------------------------------------\r\n');
+                     myprint(writeoption,fileID_D,'-------------------------------------------------------------------------------------------\r\n');
                         
                         %CD_index   = [];
                         noCD_index = [];
@@ -899,19 +900,19 @@ for i = 1:numel(DLV)
                         
                 for j=1:length(nopastLB_Bstore)
                     
-                     fprintf(fileID_D,'Lender %d and borrower %d did NOT have a past L/B relationship\r\n',...
+                     myprint(writeoption,fileID_D,'Lender %d and borrower %d did NOT have a past L/B relationship\r\n',...
                         DLV(i),nopastLB_Bstore(j));
                 
-                        fprintf(fileID_D,'--> Sets the default counterparty risk premium of %.2f  in period %d\r\n',...
+                        myprint(writeoption,fileID_D,'--> Sets the default counterparty risk premium of %.2f  in period %d\r\n',...
                             RP_mat(DLV(i),nopastLB_Bstore(j))-1,t);
                 
-                        fprintf(fileID_D,'==> The interbank rate for this transaction is %.2f percent\r\n',...
+                        myprint(writeoption,fileID_D,'==> The interbank rate for this transaction is %.2f percent\r\n',...
                             (IBrate_mat(DLV(i),nopastLB_Bstore(j),t)-1)*100);
                                     
                 end                  
         end   
     end  
-       fprintf(fileID_D,'-------------------------------------------------------------------------------------------\r\n');
+       myprint(writeoption,fileID_D,'-------------------------------------------------------------------------------------------\r\n');
 
         banks(DLV(i)).IBM.L_bil_exp_repay    = adj_lender_lend_mat(DLV(i),banks(DLV(i)).borrowing_cps,t);
         banks(DLV(i)).IBM.L_tot_exp_repay(t) = sum(adj_lender_lend_mat(DLV(i),banks(DLV(i)).borrowing_cps,t));
