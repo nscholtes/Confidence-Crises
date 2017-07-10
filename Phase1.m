@@ -420,22 +420,26 @@ for i = 1:numel(DLV)
 % Total lending step 1: Compare total requests with available cash reserves
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                    
-        banks(DLV(i)).IBM.L_tot_loans(t) = min(banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR),banks(DLV(i)).IBM.L_tot_requests(t));
-           
-        if t==1
+        banks(DLV(i)).IBM.L_prov_tot_loans(t) = min(banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR),banks(DLV(i)).IBM.L_tot_requests(t));
+        
+        fprintf(fileID_D,'*1.CHECK AVAILABLE LIQUIDITY*\r\n');
+        
+        % CASE I: Total requests <= Available reserves --> Lenders makes all requested loans.
             
-            fprintf(fileID_D,'*CHECK AVAILABLE LIQUIDITY*\r\n');
-            
-            if abs(banks(DLV(i)).IBM.L_tot_loans(t) - banks(DLV(i)).IBM.L_tot_requests(t)) < tol
+            if abs(banks(DLV(i)).IBM.L_prov_tot_loans(t) - banks(DLV(i)).IBM.L_tot_requests(t)) < tol
                 
-                %banks(DLV(i)).IBM.L_tot_loans(t) == banks(DLV(i)).IBM.L_tot_requests(t)
+                banks(DLV(i)).IBM.L_tot_loans(t) = banks(DLV(i)).IBM.L_prov_tot_loans(t);
                                 
                 banks(DLV(i)).IBM.L_bil_loans = banks(DLV(i)).IBM.L_bil_requests;
-                        
-                fprintf(fileID_D,'Lender %d has sufficient reserves to match all requests in period %d\r\n',DLV(i),t);    
+                           
+                fprintf(fileID_D,'Lender %d has sufficient reserves (%.3f) to match all requests (%.3f) in period %d\r\n',DLV(i),...
+                    banks(DLV(i)).balancesheet.assets.cash(t,tau),banks(DLV(i)).IBM.L_tot_requests(t),t);    
                 fprintf(fileID_D,'----------------------------------------------------------------------------------\r\n');
+                
+         % CASE II:  Total requests > available reserves --> Lender allocates maximum allowable which is divided equally across counterparties and
+         % compared to each bilateral request individually using the same min{allocated bilateral funds; request} approach.
                
-            elseif abs(banks(DLV(i)).IBM.L_tot_loans(t) - banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)) < tol
+            elseif abs(banks(DLV(i)).IBM.L_prov_tot_loans(t) - banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)) < tol
                 
                 %banks(DLV(i)).IBM.L_tot_loans(t) == banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)
                                 
@@ -448,8 +452,9 @@ for i = 1:numel(DLV)
                         
                         banks(DLV(i)).IBM.L_tot_loans(t) = sum(banks(DLV(i)).IBM.L_bil_loans);
                         
-                        fprintf(fileID_D,'Total requests to Lender %d exceed available reserves. Allocate %.3f in period %d\r\n',...
-                            DLV(i),banks(DLV(i)).IBM.L_tot_loans(t),t);
+                        fprintf(fileID_D,'Total requests (%.3f) to Lender %d exceed available reserves (%.3f). Allocate %.3f in period %d\r\n',...
+                            banks(DLV(i)).IBM.L_tot_requests(t),DLV(i),...
+                            banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR),banks(DLV(i)).IBM.L_tot_loans(t),t);
                         fprintf(fileID_D,'----------------------------------------------------------------------------------\r\n');  
             else
                 disp('Error in lender reserve allocation')
@@ -461,47 +466,22 @@ for i = 1:numel(DLV)
  %%% requests to total received loans ==> Proxy for banks' perception of funding liquidity risk
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  
-        elseif t>1
-           
-            fprintf(fileID_D,'*CHECK AVAILABLE LIQUIDITY*\r\n');
-
-            if abs(banks(DLV(i)).IBM.L_tot_loans(t) - banks(DLV(i)).IBM.L_tot_requests(t)) < tol % Total 
-                
-                %banks(DLV(i)).IBM.L_tot_loans(t) == banks(DLV(i)).IBM.L_tot_requests(t)
-                
-                banks(DLV(i)).IBM.L_bil_loans = banks(DLV(i)).IBM.L_bil_requests;
-                fprintf(fileID_D,'Lender %d has sufficient reserves to match all requests in period %d\r\n',DLV(i),t);    
-               
-            elseif abs(banks(DLV(i)).IBM.L_tot_loans(t) - banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)) < tol 
-                
-                %banks(DLV(i)).IBM.L_tot_loans(t) == banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)
-                
-                    for j = 1:banks(DLV(i)).numborrowing_cps(t)
-                    
-                        banks(DLV(i)).IBM.L_bil_loans(j) = min(banks(DLV(i)).IBM.L_bil_requests(j),...
-                            (banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR))/(banks(DLV(i)).numborrowing_cps(t)));                      
-                    end
-                        
-                    banks(DLV(i)).IBM.L_tot_loans(t) = sum(banks(DLV(i)).IBM.L_bil_loans);
-                        
-                    fprintf(fileID_D,'Total requests to Lender %d exceed available reserves. Allocate %.3f in period %d\r\n',...
-                        DLV(i),banks(DLV(i)).IBM.L_tot_loans(t),t);
-            else
-                disp('error in lender reserve allocation!')
-            end     
+        if t>1
+             
             t_search = t-1;
                 while t_search >= 1
                     
                     if shocksign_mat(DLV(i),t_search) == -1 && banks(DLV(i)).IBM.B_tot_requests(t_search)~=0 ...
                             && banks(DLV(i)).IBM.B_tot_loans(t_search)~=0
                         
-                        fprintf(fileID_D,'*HOARDING DECISION*\r\n');
-                                         
-                        banks(DLV(i)).IBM.L_tot_loans(t)  = (banks(DLV(i)).IBM.B_tot_loans(t_search)./...
-                            banks(DLV(i)).IBM.B_tot_requests(t_search)).*banks(DLV(i)).IBM.L_tot_loans(t);
+                        fprintf(fileID_D,'*2. HOARDING DECISION*\r\n');
                         
-                        banks(DLV(i)).IBM.hoarding(t)   = (1-(banks(DLV(i)).IBM.B_tot_loans(t_search)./...
-                            banks(DLV(i)).IBM.B_tot_requests(t_search))).*banks(DLV(i)).IBM.L_tot_loans(t);
+                        banks(DLV(i)).IBM.L_hoardingmultiplier(t) = (banks(DLV(i)).IBM.B_tot_loans(t_search)./...
+                            banks(DLV(i)).IBM.B_tot_requests(t_search));
+                                         
+                        banks(DLV(i)).IBM.L_tot_loans(t)  = banks(DLV(i)).IBM.L_hoardingmultiplier(t).*banks(DLV(i)).IBM.L_prov_tot_loans(t);
+                        
+                        banks(DLV(i)).IBM.hoarding(t)   = (1-banks(DLV(i)).IBM.L_hoardingmultiplier(t)).*banks(DLV(i)).IBM.L_prov_tot_loans(t);
                         
                         if abs(banks(DLV(i)).IBM.hoarding(t)) < tol
                             banks(DLV(i)).IBM.hoarding(t) = 0;
@@ -515,7 +495,7 @@ for i = 1:numel(DLV)
                         loanrequests      = banks(DLV(i)).IBM.L_tot_requests(t)
                         maxpossalloc      = banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)
                         
-                        if abs(banks(DLV(i)).IBM.L_tot_loans(t) - banks(DLV(i)).IBM.L_tot_requests(t))< tol
+                        if abs(banks(DLV(i)).IBM.L_tot_loans(t) -  banks(DLV(i)).IBM.L_hoardingmultiplier(t).*banks(DLV(i)).IBM.L_tot_requests(t))< tol
                             
                             %banks(DLV(i)).IBM.L_tot_loans(t) == banks(DLV(i)).IBM.L_tot_requests(t)
                                             
@@ -523,7 +503,7 @@ for i = 1:numel(DLV)
                         
                             fprintf(fileID_D,'--> After hoarding, Lender %d has sufficient reserves to match all requests in period %d\r\n',DLV(i),t);
                         
-                        elseif abs(banks(DLV(i)).IBM.L_tot_loans(t) - banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)) < tol
+                        elseif abs(banks(DLV(i)).IBM.L_tot_loans(t) -  banks(DLV(i)).IBM.L_hoardingmultiplier(t).*banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)) < tol
                             
                            % banks(DLV(i)).IBM.L_tot_loans(t) == banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)
                                                     
@@ -551,7 +531,7 @@ for i = 1:numel(DLV)
                             banks(DLV(i)).borrowing_cps(j),banks(DLV(i)).IBM.L_bil_requests(j),banks(DLV(i)).IBM.L_bil_loans(j),DLV(i),t);
                         end   
 
-                        t_search = 0;   
+                        t_search = 0;   % For now, only look at most recent period where lender was liquidity short
                     end                  
                     t_search = t_search -1; 
                                 
