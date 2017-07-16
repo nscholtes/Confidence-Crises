@@ -1,14 +1,17 @@
 function [banks,NMT_matrices,assetprices,tau] =...
-            Phase0(banks,ActiveBanks,a,BS_parsvec,T,t,ibn_adjmat,NMT_matrices,opn_adjmat,assetprices)
+            Phase0(banks,ActiveBanks,a,BS_pars,T,t,ibn_adjmat,NMT_matrices,opn_adjmat,assetprices)
 
 % -------------------------------------------------------------------------
 %% Initialisation
 % -------------------------------------------------------------------------
 
-alpha = BS_parsvec(1);
-beta  = BS_parsvec(2);
+alpha = BS_pars(1);
+beta  = BS_pars(2);
 
-if t>1
+if t == 1
+    ea_holdings_mat = NMT_matrices(:,:,t,1);   
+    ea_port_mat     = NMT_matrices(:,:,t,2);   
+else
     ea_holdings_mat = NMT_matrices(:,:,(4*t)-4:(4*t)-3,1);
     ea_port_mat     = NMT_matrices(:,:,(4*t)-4:(4*t)-3,2);
 end
@@ -82,7 +85,7 @@ if t == 1
         banks(i).depositshock = zeros(1,T);
                         
     end
-        
+            
     NMT_matrices(:,:,1,1) = ea_holdings_mat;
     NMT_matrices(:,:,1,2) = ea_port_mat;
     
@@ -105,6 +108,7 @@ elseif t > 1
         
         banks(i).balancesheet.assets.cash(t,tau)            = banks(i).balancesheet.assets.cash(t-1,4);
         banks(i).balancesheet.assets.external_assets(t,tau) = banks(i).balancesheet.assets.external_assets(t-1,4);
+        banks(i).balancesheet.assets.total(t,tau)           = banks(i).balancesheet.assets.total(t-1,4);
           
 % External asset portfolio
 
@@ -113,9 +117,7 @@ elseif t > 1
 
         banks(i).balancesheet.assets.external_asset_holdings((4*t)-3,:) = banks(i).balancesheet.assets.external_asset_holdings((4*t)-4,:);
         banks(i).balancesheet.assets.external_asset_port((4*t)-3,:)     = banks(i).balancesheet.assets.external_asset_port((4*t)-4,:);
-        
-        banks(i).balancesheet.assets.total(t,tau) = banks(i).balancesheet.assets.total(t-1,4);
-        
+                
 % Liabilities-side 
     
         banks(i).balancesheet.liabilities.deposits(t,tau) = banks(i).balancesheet.liabilities.deposits(t-1,2);

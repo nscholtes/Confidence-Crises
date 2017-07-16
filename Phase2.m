@@ -1,5 +1,5 @@
 function [banks,assetprices,opn_adjmat,NMT_matrices,NNT_matrices,TM_matrices]...
-            =Phase2(banks,ActiveBanks,ActiveAssets,opn_adjmat,state_vars,MRR,...
+            =Phase2(banks,ActiveBanks,ActiveAssets,opn_adjmat,Pars_pshock_current,Pars_policy,...
             NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D,writeoption)
         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -14,15 +14,15 @@ function [banks,assetprices,opn_adjmat,NMT_matrices,NNT_matrices,TM_matrices]...
 %-------------------------------------------------------------------------
 
 tau = 3;
-%myprint(writeoption,1,'Current phase: %d\n',tau-1);
-%clc;
 
 % Import state variables from topsim used in current phase
 
-num_shocked_ea = state_vars(1);
-eashock_LB     = state_vars(2);
-eashock_UB     = state_vars(3);
-market_depth   = state_vars(4);
+num_shocked_ea = Pars_pshock_current(1);
+eashock_LB     = Pars_pshock_current(2);
+eashock_UB     = Pars_pshock_current(3);
+market_depth   = Pars_pshock_current(4);
+
+MRR = Pars_policy;
 
 % Import interbank matrices from the current period
 
@@ -183,7 +183,6 @@ for i = 1:numel(DBV)
             borr_rep_mat(DBV(i),banks(DBV(i)).final_cps) = banks(DBV(i)).IBM.B_fin_bil_loanrepay;
                     
             banks(DBV(i)).firesales.act_FS_vec = zeros(1,banks(DBV(i)).balancesheet.assets.num_external_assets(t));
-            %banks(DBV(i)).firesales.act_FS_vec = zeros(1,banks(DBV(i)).balancesheet.assets.num_external_assets(t));
         
             banks(DBV(i)).firesales.final_firesales(t) = 0;
             banks(DBV(i)).firesales.tot_des_FS(t)      = 0;
@@ -232,16 +231,7 @@ for i = 1:numel(DBV)
             
             for j = 1:banks(DBV(i)).balancesheet.assets.num_external_assets(t)
              
-% When required firesale of an asset is > holding of that asset, sell off
-% entire position of that asset:
-                %currB = DBV(i)
-                %curr_asset = j
-                %NEA   = banks(DBV(i)).balancesheet.assets.num_external_assets(t)
-                %desFS = banks(DBV(i)).firesales.des_FS_vec(j)
-                %AP    = assetprices((4*t)-1,banks(DBV(i)).balancesheet.assets.external_asset_ids(j))
-                %EAH   = banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,j)
-                
-                %disp('---')
+% When required firesale of an asset is > holding of that asset, sell off entire position of that asset:
         
                 if  banks(DBV(i)).firesales.des_FS_vec(j)/assetprices((4*t)-1,banks(DBV(i)).balancesheet.assets.external_asset_ids(j))...
                         > banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,j)
@@ -315,7 +305,6 @@ for i = 1:numel(DBV)
                 
             else
                 disp('Error in borrower repayment with firesales!')
- 
             end
               
         myprint(writeoption,fileID_D,'Borrower %d firesales %.3f worth of external assets in period %d to pay back %.3f worth of interbank loans. Repayment/loan ratio is: %.3f percent\r\n',...
@@ -385,10 +374,6 @@ tot_eaFS_vec = tot_eaFS_vec_1(keepassets);
 % 2. MIF: Exponential function of firesales
 
 market_depth = ones(1,numel(keepassets));
-
-%size(tot_eaFS_vec)
-%size(tot_eaH_vec)
-%size(assetprices((4*t)-1,keepassets))
 
 assetprices((4*t),:) = assetprices((4*t)-1,:);
 

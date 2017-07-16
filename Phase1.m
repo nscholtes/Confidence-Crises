@@ -1,5 +1,6 @@
 function [banks,DBV,DLV,NT_matrices,NNT_matrices]...
-    =Phase1(banks,ActiveBanks,ibn_adjmat,n_banks,BS_parsvec,information,calibratedrate_vec,NT_matrices,NNT_matrices,t,fileID_D,writeoption)
+    =Phase1(banks,ActiveBanks,ibn_adjmat,n_banks,beta,Pars_interestrates,Pars_dshock,Pars_policy,information,...
+    NT_matrices,NNT_matrices,t,fileID_D,writeoption)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -17,19 +18,18 @@ function [banks,DBV,DLV,NT_matrices,NNT_matrices]...
 %-------------------------------------------------------------------------
 
 tau = 2;
-%myprint(writeoption,1,'Current phase: %d\n',tau-1);
 tol = 1.e-6;
 
-% Collecting shock information
+% Assigning variables
 
-r_d  = calibratedrate_vec(2);
-r_e  = calibratedrate_vec(3);
-r_b  = calibratedrate_vec(4);
+r_d  = Pars_interestrates(2);
+r_e  = Pars_interestrates(3);
+r_b  = Pars_interestrates(4);
 
-beta =  BS_parsvec(2);
-theta = BS_parsvec(3);
-SPF   = BS_parsvec(4); % Proportionality factor for deposit shock
-MRR    = BS_parsvec(5); % Liquidity buffer
+theta = Pars_dshock(1);
+SPF   = Pars_dshock(2); 
+
+MRR   =Pars_policy; 
 
 % Initialising counters used in for-loops
 
@@ -82,7 +82,7 @@ dshock_mean = mean(dshock_store);
 for i = ActiveBanks
     % Update deposits
     
-    banks(i).depositshock(t) = banks(i).depositshock(t) - dshock_mean;
+    %banks(i).depositshock(t) = banks(i).depositshock(t) - dshock_mean;
     
     banks(i).balancesheet.liabilities.deposits(t,tau) = banks(i).balancesheet.liabilities.deposits(t,tau-1) + banks(i).depositshock(t);
     

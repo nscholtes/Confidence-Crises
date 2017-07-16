@@ -27,8 +27,10 @@ total_des_FS_vec        = TOT_vec(:,13);
 total_assets         = TOT_sum(1,:);
 total_cash           = TOT_sum(2,:);
 total_ext_assets     = TOT_sum(3,:);
-total_investment     = TOT_sum(4,:);
-total_des_investment = TOT_sum(5,:);
+
+total_des_investment = TOT_sum(4,:);
+total_investment     = TOT_sum(5,:);
+
 
 total_deposits       = TOT_sum(6,:);
 total_capital        = TOT_sum(7,:);
@@ -65,15 +67,15 @@ for i = ActiveBanks
         
     % Assets
     
-    total_assets_vec(i)         = banks(i).balancesheet.assets.total(t,3);
-    total_cash_vec(i)           = banks(i).balancesheet.assets.cash(t,3);
+    total_assets_vec(i)         = banks(i).balancesheet.assets.total(t,4);
+    total_cash_vec(i)           = banks(i).balancesheet.assets.cash(t,4);
     total_ext_assets_vec(i)     = banks(i).balancesheet.assets.external_assets(t,4);
     total_des_investment_vec(i) = banks(i).balancesheet.assets.des_investment(t);
     total_investment_vec(i)     = banks(i).balancesheet.assets.investment(t);
     
     % Liabilities
     total_deposits_vec(i)       = banks(i).balancesheet.liabilities.deposits(t,2);
-    total_capital_vec(i)        = banks(i).balancesheet.liabilities.capital(t,3);
+    total_capital_vec(i)        = banks(i).balancesheet.liabilities.capital(t,4);
                
 end
 

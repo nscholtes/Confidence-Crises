@@ -1,4 +1,4 @@
-function [] = topsim()
+function [Networkdata, Graphdata] = topsim()
 
 %--------------------------------------------------------------------------
 % MATLAB code for 'Exploring the counterparty-liquidity risk nexus using agent-based network model of the interbank market
@@ -44,7 +44,7 @@ fileID_IBN = fopen(strcat('Logs/Network Generation/IBN_',datestr(datetime('today
 %fileID_OPN = fopen(strcat('Logs/Network Generation/OPN_',datestr(datetime('today')),'.txt'),'w');
 
 % Select whether to create a detailed simulation log  (Input: Y/N)
-writeoption = 'Y';
+writeoption = 'N';
 
 % Select whether to plot network in Gephi or MATLAB (Input: Gephi/MATLAB)
 graphoption = 'MATLAB';
@@ -57,20 +57,24 @@ graphoption = 'MATLAB';
 % Bank size/fitness distribution parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-n_banks     = 50;        % Number of banks
+n_banks     = 100;        % Number of banks
 ActiveBanks = 1:n_banks;
 a_min       = 5;         % Minimum bank size
-a_max       = 200;       % Maximum bank size
+a_max       = 100;       % Maximum bank size
 gamma       = 2;         % Power law exponent for bank size distribution
+
+Pars_netgen = [a_min,a_max,gamma,n_banks];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Overlapping portfolio parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-m_assets = 200; % Number of external assets
+m_assets = 100; % Number of external assets
 av_div   = 5;   % Average number of assets held per bank (diversification)
 
 ActiveAssets = 1:m_assets;
+
+Pars_opnet = [m_assets, av_div];
 
 %--------------------------------------------------------------------------
 % Agent-Based Model Parameters
@@ -88,18 +92,21 @@ T = 500;        % Number of iteration steps
 
 alpha = 0.9;   % external asset/asset ratio
 beta  = 0.92;  % deposit/liability ratio
-theta = 0.5;   % Multiplier for mean-reverting component
-SPF   = 0.025; % Shock proportionality factor
-MRR   = 0.01;  % Minimum reserve requirement
 
-BS_parsvec = [alpha beta theta SPF MRR];
+Pars_balancesheet= [alpha beta];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% State of the world
+% Liquidity and portfolio shock
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 information = 'perfect';
 
+% Liquidity (deposit shock)
+
+theta = 0.5;   % Multiplier for mean-reverting component
+SPF   = 0.025; % Shock proportionality factor
+
+% Portfolio shock
 shocktime   = T/2; 
 
 num_shocked_ea_S = m_assets/5;
@@ -112,7 +119,9 @@ eashock_LB_C     = 0.75;
 eashock_UB_C     = 1;
 market_depth_C    = 0.5*ones(1,m_assets);
     
-statevar_vec = [num_shocked_ea_S, eashock_LB_S, eashock_UB_S market_depth_S;
+%Collecting parameters
+Pars_dshock  = [theta SPF];
+Pars_pshock = [num_shocked_ea_S, eashock_LB_S, eashock_UB_S market_depth_S;
     num_shocked_ea_C, eashock_LB_C, eashock_UB_C market_depth_C];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -120,22 +129,24 @@ statevar_vec = [num_shocked_ea_S, eashock_LB_S, eashock_UB_S market_depth_S;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 r_z  = 0.05; % Illiquid investment rate
-r_d  = 0.03; % Deposit rate
-r_e  = 0.04; % External asset return
-r_b  = 0.03; % Initial interbank rat
+r_d  = 0.02; % Deposit rate
+r_e  = 0.03; % External asset return
+r_b  = 0.04; % Initial interbank rat
 
-calibratedrate_vec = [r_z r_d r_e r_b];
+Pars_interestrates = [r_z r_d r_e r_b];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Regulatory parameters
+% Policy parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Macroprudential policy parameters + central bank instruments
-%%% MRR = Minimum Reserve Requirement
-%%% CR  = Capital ratio
 
-CR = 0.08;
-LR = 0.03;
+%CR = 0.08;
+%LR = 0.03;
+
+psi = 0.01;  % Minimum reserve requirement
+
+Pars_policy = psi;
 
 %--------------------------------------------------------------------------
 % Generating the network
@@ -183,7 +194,6 @@ clc
 %--------------------------------------------------------------------------
 %% Agent-Based Model
 %--------------------------------------------------------------------------
-
 tic
 for t=1:T
     if t==1
@@ -192,22 +202,22 @@ for t=1:T
         x = t-1;
     end        
     if t < shocktime
-        state_vars = statevar_vec(1,:);
+        Pars_pshock_current = Pars_pshock(1,:);
     elseif t >= shocktime
-        state_vars = statevar_vec(1,:);
+        Pars_pshock_current = Pars_pshock(1,:);
     end
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MODEL DYNAMICS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   fprintf(1,'Current period: %d\n',t);
 % Phase 0: Initialisation, Population of the network and carrying over of variables from previous iterations
    [banks,NMT_matrices,assetprices] =...
-        Phase0(banks,ActiveBanks,a,BS_parsvec,T,t,IBN_adjmat(:,:,x),NMT_matrices,OPN_adjmat(:,:,x),assetprices);
+        Phase0(banks,ActiveBanks,a,Pars_balancesheet,T,t,IBN_adjmat(:,:,x),NMT_matrices,OPN_adjmat(:,:,x),assetprices);
 % Phase 1: Deposit shock, investment decision, interbank market
    [banks,DBV,DLV,NT_matrices,NNT_matrices] = ...
-        Phase1(banks,ActiveBanks,IBN_adjmat(:,:,x),n_banks,BS_parsvec,information,calibratedrate_vec,NT_matrices,NNT_matrices,t,fileID_D);
+        Phase1(banks,ActiveBanks,IBN_adjmat(:,:,x),n_banks,beta,Pars_interestrates,Pars_dshock,Pars_policy,information,NT_matrices,NNT_matrices,t,fileID_D,writeoption);
 % Phase 2: Asset price shock, loan repayment, firesales and second round effects
    [banks,assetprices,OPN_adjmat(:,:,t),NMT_matrices,NNT_matrices,TM_matrices] = ...
-        Phase2(banks,ActiveBanks,ActiveAssets,OPN_adjmat(:,:,x),state_vars,BS_parsvec(5),...
-        NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D);
+        Phase2(banks,ActiveBanks,ActiveAssets,OPN_adjmat(:,:,x),Pars_pshock_current,Pars_policy,...
+        NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D,writeoption);
 % Phase 3: Removal of insolvent banks and (possible) central bank intervention
    [banks,banksfail,n_banks,IBN_adjmat(:,:,t),OPN_adjmat(:,:,t),FailCount_vec(t),FailedBankID_mat(t,:),ActiveAssets,num_InactiveAssets(t),assetprices(t,:)] =  ...
        Phase3(banks,banksfail,n_banks,m_assets,calibratedrate_vec(1),IBN_adjmat(:,:,x),OPN_adjmat(:,:,x),assetprices(t,:),...
@@ -227,13 +237,21 @@ for t=1:T
     [banks] = housekeeping(banks,n_banks);
 end
 
+allparameters = [a_min,a_max,gamma,av_div,BS_parsvec,calibraterate_vec,n_banks,m_assets];
+allvariables  = [ActiveBanks,ActiveAssets,TOT_T_matrices,IBN_adjmat(:,:,[1,T])];
+
+simoutput(allparameters,allvariables);
+
 clearvars a a_max a_min alpha av_div beta BS_parsvec calibrateratevec d_assetprices d_firesales...
-DBV DLV dTOT_matrices eashock_LB_C eashock_LB_S eashock_UB_C eashock_UB_S 
+DBV DLV dTOT_matrices eashock_LB_C eashock_LB_S eashock_UB_C eashock_UB_S gamma m_assets market_depth_C market_depth_S...
+MRR num_shocked_ea_C num_shocked_ea_S r_b r_d r_e r_z shocktime SPF statevar_vec theta
 toc
 %--------------------------------------------------------------------------
 %% Model output
 %--------------------------------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % NETWORK VISUALIZATION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Fix parameters used for network visualization
 numslices    = 4;        % Number of time periods to use for network visualization
 timeslices   = linspace(T/numslices,T,numslices); 
@@ -248,11 +266,20 @@ networkparameters = [markernorm edgewnorm graphlayout];
 
 [Networkdata,Graphdata] = viewnetworks(fig_output,networkparameters,TOT_NT_matrices(:,[1 timeslices],NTvisualize),[1 timeslices],...
     cat(3,ibn_adjmat_init,IBN_adjmat(:,:,timeslices)),NNT_matrices(:,:,[1 timeslices],NNTvisualize),cat(3,opn_adjmat_init,OPN_adjmat(:,:,timeslices)));
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CREATION OF TABLES
-% maketable()
-% SIMULATION RESULTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+allparameters = [a_min,a_max,gamma,av_div,BS_parsvec,calibraterate_vec,n_banks,m_assets];
+maketables(allparameters);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SIMULATION RESULTS TO COMMAND WINDOW
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+allparameters = [a_min,a_max,gamma,av_div,BS_parsvec,calibraterate_vec,n_banks,m_assets];
+allvariables  = [ActiveBanks,ActiveAssets,TOT_T_matrices,IBN_adjmat(:,:,[1,T])];
+
+simoutput(allparameters,allvariables);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BALANCE SHEET DYNAMICS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-normalizegraph = 'N'; % Y/N to normalize balance sheet variables by total assets
+normalizegraph = 'Y'; % Y/N to normalize balance sheet variables by total assets
 Results_balancesheet(fig_output,TOT_T_matrices,TOT_NT_matrices,normalizegraph)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% INTERBANK MARKET DYNAMICS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Results_IBM(fig_output,TOT_T_matrices,TOT_NT_matrices,NNT_matrices(:,:,:,8),T)
@@ -260,5 +287,11 @@ Results_IBM(fig_output,TOT_T_matrices,TOT_NT_matrices,NNT_matrices(:,:,:,8),T)
 Results_securitiesmarket(fig_output,TOT_T_matrices,TM_matrices,total_firesales_vec,assetprices,T);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% BANK FAILURE AND CENTRAL BANK INTERVENTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 [banksfail] = Results_failures(fig_output,n_banks,IBN_adjmat,OPN_adjmat,banksfail,FailedBanks,FailCount_vec,num_InactiveAssets,t,T);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+clearvars a a_max a_min alpha av_div beta BS_parsvec calibrateratevec d_assetprices d_firesales...
+DBV DLV dTOT_matrices eashock_LB_C eashock_LB_S eashock_UB_C eashock_UB_S gamma m_assets market_depth_C market_depth_S...
+MRR num_shocked_ea_C num_shocked_ea_S r_b r_d r_e r_z shocktime SPF statevar_vec theta
 
 end
