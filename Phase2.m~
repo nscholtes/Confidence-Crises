@@ -1,5 +1,5 @@
 function [banks,assetprices,opn_adjmat,NMT_matrices,NNT_matrices,TM_matrices]...
-            =Phase2(banks,ActiveBanks,ActiveAssets,opn_adjmat,Pars_pshock,Pars_policy,...
+            =Phase2(banks,ActiveBanks,ActiveAssets,opn_adjmat,Pars_pshock_current,Pars_policy,...
             NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D,writeoption)
         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -14,15 +14,13 @@ function [banks,assetprices,opn_adjmat,NMT_matrices,NNT_matrices,TM_matrices]...
 %-------------------------------------------------------------------------
 
 tau = 3;
-%myprint(writeoption,1,'Current phase: %d\n',tau-1);
-%clc;
 
 % Import state variables from topsim used in current phase
 
-num_shocked_ea = Pars_pshock(1);
-eashock_LB     = Pars_pshock(2);
-eashock_UB     = Pars_pshock(3);
-market_depth   = Pars_pshock(4);
+num_shocked_ea = Pars_pshock_current(1);
+eashock_LB     = Pars_pshock_current(2);
+eashock_UB     = Pars_pshock_current(3);
+market_depth   = Pars_pshock_current(4);
 
 MRR = Pars_policy;
 
@@ -60,8 +58,8 @@ end
 
 num_shocked_ea = numel(ActiveAssets);
 
-for i = 1:num_shocked_ea
-    shocked_ea_vec(i)= randi(numel(ActiveAssets));   
+for i = 1:10
+    shocked_ea_vec(i)= randi(numel(ActiveAssets))
 end
 
 non_shocked_ea_vec = setdiff(linspace(1,numel(ActiveAssets),numel(ActiveAssets)),shocked_ea_vec);
@@ -238,7 +236,7 @@ for i = 1:numel(DBV)
                 if  banks(DBV(i)).firesales.des_FS_vec(j)/assetprices((4*t)-1,banks(DBV(i)).balancesheet.assets.external_asset_ids(j))...
                         > banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,j)
                     
-                    %disp('Case')
+                    disp('Case: Firesales insufficient to repay loan in full!')
                 
                     banks(DBV(i)).firesales.act_FS_vec(j) = banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,j);
                 
@@ -324,8 +322,8 @@ for i = 1:numel(DBV)
        
     borr_rep_mat(DBV(i),banks(DBV(i)).final_cps) = banks(DBV(i)).IBM.B_fin_bil_loanrepay;
     
-    banks(DBV(i)).IBM.L_bil_repaid_loans(t) = 0;
-    banks(DBV(i)).IBM.L_tot_repaid_loans(t) = 0;
+    %banks(DBV(i)).IBM.L_bil_repaid_loans(t) = 0;
+    %banks(DBV(i)).IBM.L_tot_repaid_loans(t) = NaN;
     
     banks(DBV(i)).firesales.external_asset_firesales(t,:) = banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,:)-...
         banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,:);

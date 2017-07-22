@@ -65,8 +65,7 @@ fprintf(fileID_S,'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for i = ActiveBanks
         
-    % Assets
-    
+    % Assets  
     total_assets_vec(i)         = banks(i).balancesheet.assets.total(t,4);
     total_cash_vec(i)           = banks(i).balancesheet.assets.cash(t,4);
     total_ext_assets_vec(i)     = banks(i).balancesheet.assets.external_assets(t,4);

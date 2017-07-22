@@ -148,7 +148,7 @@ for i = 2:numel(Slice)
         set(gca,'XtickLabel',[],'YtickLabel',[],'XTick',[],'YTick',[]);
         title(graphtitle{i},'Interpreter','latex')
 end 
-set(gcf,'renderer','painters');
+set(h,'renderer','painters');
 hfig = tightfig;
 %set(gcf,'Units','Inches');
 %pos = get(gcf,'Position');
@@ -226,15 +226,15 @@ print(hfig,'-dpdf',strcat(fig_output_VN,'overlappingportfolio_initial.pdf'));
 % Overlapping portfolio network evolution
 figure
 for i = 2:numel(Slice)
-    subplot(2,numel(Slice)-3,i-1)
+    subplot(1,numel(Slice)-1,i-1)
         G_BP.(Slice{i}) = graph(Networkdata_BP.(Slice{i}).opvizmat);
-        h=plot(G_BP.(Slice{i}),'NodeLabel',[]);
+        h=plot(G_BP.(Slice{i}));
         highlight(h,Networkdata_BP.(Slice{i}).numbanks+1:(Networkdata_BP.(Slice{i}).numbanks+Networkdata_BP.(Slice{i}).numassets),'NodeColor','r');
-        
-        %labelnode(h,Networkdata_BP.(Slice{i}).bankarray,Networkdata_BP.(Slice{i}).bankids)
-        %labelnode(h,Networkdata_BP.(Slice{i}).numbanks+1:Networkdata_BP.(Slice{i}).numbanks+Networkdata_BP.(Slice{i}).numassets,...
-            %Networkdata_BP.(Slice{i}).assetids)
-        
+        if i>3
+            labelnode(h,Networkdata_BP.(Slice{i}).bankarray,Networkdata_BP.(Slice{i}).bankids)
+            labelnode(h,Networkdata_BP.(Slice{i}).numbanks+1:Networkdata_BP.(Slice{i}).numbanks+Networkdata_BP.(Slice{i}).numassets,...
+            Networkdata_BP.(Slice{i}).assetids)
+        end
 % Reorganising to visualise as bipartite graph
         h.XData(1:Networkdata_BP.(Slice{i}).numbanks) = 1;
         %h.YData(1:Networkdata_BP.(Slice{i}).numbanks) = linspace(0.5-(Networkdata_BP.(Slice{i}).numbanks/(2*Networkdata_BP.(Slice{i}).numassets)),...

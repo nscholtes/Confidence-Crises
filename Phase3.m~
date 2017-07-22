@@ -29,7 +29,7 @@ end
 
 for i = ActiveBanks
         
-    if banks(i).balancesheet.liabilities.capital(t,tau) < -banks(i).balancesheet.liabilities.capital(1,1)
+    if banks(i).balancesheet.liabilities.capital(t,tau) < 
         
         % Report bank as failed
         FailCount    = FailCount + 1;

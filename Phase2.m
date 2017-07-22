@@ -56,11 +56,14 @@ end
 
 % Select subset of assets to shock - random integer draw
 
-num_shocked_ea = numel(ActiveAssets);
+%num_shocked_ea = numel(ActiveAssets);
 
 for i = 1:num_shocked_ea
     shocked_ea_vec(i)= randi(numel(ActiveAssets));   
 end
+
+shocked_ea_vec = unique(shocked_ea_vec);
+num_shocked_ea = numel(shocked_ea_vec);
 
 non_shocked_ea_vec = setdiff(linspace(1,numel(ActiveAssets),numel(ActiveAssets)),shocked_ea_vec);
 
@@ -236,7 +239,7 @@ for i = 1:numel(DBV)
                 if  banks(DBV(i)).firesales.des_FS_vec(j)/assetprices((4*t)-1,banks(DBV(i)).balancesheet.assets.external_asset_ids(j))...
                         > banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,j)
                     
-                    %disp('Case')
+                    disp('Case: Firesales insufficient to repay loan in full!')
                 
                     banks(DBV(i)).firesales.act_FS_vec(j) = banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,j);
                 
@@ -322,8 +325,8 @@ for i = 1:numel(DBV)
        
     borr_rep_mat(DBV(i),banks(DBV(i)).final_cps) = banks(DBV(i)).IBM.B_fin_bil_loanrepay;
     
-    banks(DBV(i)).IBM.L_bil_repaid_loans(t) = 0;
-    banks(DBV(i)).IBM.L_tot_repaid_loans(t) = 0;
+    %banks(DBV(i)).IBM.L_bil_repaid_loans(t) = 0;
+    %banks(DBV(i)).IBM.L_tot_repaid_loans(t) = NaN;
     
     banks(DBV(i)).firesales.external_asset_firesales(t,:) = banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,:)-...
         banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,:);
