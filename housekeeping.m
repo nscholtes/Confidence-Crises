@@ -2,7 +2,7 @@ function [banks] = housekeeping(banks,n_banks)
 
  if (isfield(banks,'lending_cps') && isfield(banks,'borrowing_cps'))
     
-        remove_IB_vars_1 = {'lending_cps', 'nonlending_cps', 'numlending_cps', 'final_cps', 'num_final_cps', 'borrowing_cps',...
+        remove_IB_vars_1 = {'lending_cps', 'nonlending_cps', 'numlending_cps', 'borrowing_cps',...
             'nonborrowing_cps', 'numborrowing_cps'};
     
         banks = rmfield(banks,remove_IB_vars_1);

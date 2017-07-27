@@ -1,4 +1,4 @@
-function [banks,NMT_matrices,assetprices,tau] =...
+function [banks,NMT_matrices,assetprices] =...
             Phase0(banks,ActiveBanks,a,BS_pars,T,t,ibn_adjmat,NMT_matrices,opn_adjmat,assetprices)
 
 % -------------------------------------------------------------------------
@@ -79,8 +79,8 @@ if t == 1
         end
         
         
-        ea_holdings_mat(i,banks(i).balancesheet.assets.external_asset_ids) = banks(i).balancesheet.assets.external_asset_port(t,:);
-        ea_port_mat(i,banks(i).balancesheet.assets.external_asset_ids)     = ea_holdings_mat(i, banks(i).balancesheet.assets.external_asset_ids,t);
+        ea_holdings_mat(i,banks(i).balancesheet.assets.external_asset_ids) = banks(i).balancesheet.assets.external_asset_holdings(t,:);
+        ea_port_mat(i,banks(i).balancesheet.assets.external_asset_ids)     = banks(i).balancesheet.assets.external_asset_port(t,:);
         
         banks(i).depositshock = zeros(1,T);
                         
@@ -117,7 +117,10 @@ elseif t > 1
 
         banks(i).balancesheet.assets.external_asset_holdings((4*t)-3,:) = banks(i).balancesheet.assets.external_asset_holdings((4*t)-4,:);
         banks(i).balancesheet.assets.external_asset_port((4*t)-3,:)     = banks(i).balancesheet.assets.external_asset_port((4*t)-4,:);
-                
+        
+        ea_holdings_mat(i,banks(i).balancesheet.assets.external_asset_ids,2) = banks(i).balancesheet.assets.external_asset_holdings((4*t)-3,:);
+        ea_port_mat(i,banks(i).balancesheet.assets.external_asset_ids,2)     = banks(i).balancesheet.assets.external_asset_port((4*t)-3,:);
+                  
 % Liabilities-side 
     
         banks(i).balancesheet.liabilities.deposits(t,tau) = banks(i).balancesheet.liabilities.deposits(t-1,2);

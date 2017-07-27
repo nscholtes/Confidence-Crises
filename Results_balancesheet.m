@@ -6,10 +6,10 @@ fig_output_BS = strcat(fig_output,'Results/');
  % Select whether to normalize results by dividing by total assets
 
 if strcmp(normalizegraph,'Y')
-    normfactor = TOT_T_matrices(1,:);
+    normfactor = TOT_NT_matrices(:,:,1);
     normlabel  = 'norm_';
 elseif strcmp(normalizegraph,'N')
-    normfactor = ones(1,size(TOT_T_matrices,2));
+    normfactor = ones(size(TOT_NT_matrices,1),size(TOT_NT_matrices,2));
     normlabel  = 'raw_';
 end
 
@@ -28,22 +28,22 @@ print(gcf,'-dpdf',strcat(fig_output_BS,'totalassets.pdf'));
 % Evolution of balance sheet componenents
 figure
 subplot(2,2,1)
-    plot(TOT_T_matrices(2,:)./normfactor,'LineWidth',1.1)
+    plot(nansum(TOT_NT_matrices(:,:,2)./normfactor),'LineWidth',1.1)
     grid on;
     title('Cash','Interpreter','latex')
     xlabel('Iteration step','Interpreter','latex')
 subplot(2,2,2)
-    plot(TOT_T_matrices(3,:)./normfactor,'LineWidth',1.1)
+    plot(nansum(TOT_NT_matrices(:,:,3)./normfactor),'LineWidth',1.1)
     grid on;
     title('External assets','Interpreter','latex')
     xlabel('Iteration step','Interpreter','latex')
 subplot(2,2,3)
-    plot(TOT_T_matrices(6,:)./normfactor,'LineWidth',1.1)
+    plot(nansum(TOT_NT_matrices(:,:,6)./normfactor),'LineWidth',1.1)
     grid on;
     title('Deposits','Interpreter','latex')
     xlabel('Iteration step','Interpreter','latex')
 subplot(2,2,4)
-    plot(TOT_T_matrices(7,:)./normfactor,'LineWidth',1.1)
+    plot(nansum(TOT_NT_matrices(:,:,7)./normfactor),'LineWidth',1.1)
     grid on;
     title('Capital','Interpreter','latex')
     xlabel('Iteration step','Interpreter','latex')  
@@ -56,9 +56,9 @@ print(gcf,'-dpdf',strcat(fig_output_BS,normlabel,'balancesheet.pdf'));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Investment %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 figure
-plot(TOT_T_matrices(4,:)./normfactor,'Color','b','LineWidth',1.1)
+plot(nansum(TOT_NT_matrices(:,:,4)./normfactor),'Color','b','LineWidth',1.1)
 hold on
-plot(TOT_T_matrices(5,:)./normfactor,'Color','r','LineWidth',1.1)
+plot(nansum(TOT_NT_matrices(:,:,5)./normfactor),'Color','r','LineWidth',1.1)
 grid on;
 %grid minor;
 legend({'Total planned investment','Final investment'},'Location','best','FontSize',8,'Interpreter','latex')

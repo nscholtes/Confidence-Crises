@@ -1,4 +1,4 @@
-function [banksfail] = Results_failures(fig_output,n_banks,IBN_adjmat,OPN_adjmat,banksfail,FailedBanks,FailCount,num_IA,t,T)
+function [banksfail] = Results_failures(fig_output,n_banks,IBN_adjmat,OPN_adjmat,banksfail,FailedBanks,FailCount,T)
 
 fig_output_F = strcat(fig_output,'Results/');
 

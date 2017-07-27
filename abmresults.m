@@ -1,7 +1,9 @@
-function[abmresults] = abmresults(banks,n_banks)
+function[abmresults] = abmresults(banks,n_banks,MRR)
 
-LA_variables  = {'Total requests';'Provisional loans';'Hoarding';'Total loans';'Expected repayment';'Final repayment'};
-BA_variables  = {'Total requests';'Total loans';'Required repayment';'Desired firesales';'Final firesales';'Final repayment'};
+LA_variables  = {'Total requests';'Available reserves';'Provisional loans';...
+    'Hoarding';'Total loans';'Expected repayment';'Final repayment';'Reserves after repayment'};
+BA_variables  = {'Total requests';'Total loans';'Required repayment';'Available reserves';...
+    'Desired firesales';'Final firesales';'Final repayment';'Reserves after repayment'};
 BS_variables  = {'Cash';'External assets';'Deposits';'Capital'};
 Inv_variables = {'Desired investment';'Final investment'};
 
@@ -25,13 +27,16 @@ for i = 1:n_banks
     abmresults(i).investment.Properties.RowNames = Inv_variables;
     
 % Interbank market
+
     lender_array =   [linspace(1,length(banks(i).IBM.L_tot_requests),length(banks(i).IBM.L_tot_requests))
                                                     banks(i).IBM.L_tot_requests;
+                                                    (banks(i).balancesheet.assets.cash(1:banks(i).failtime,2).*(1-MRR))';
                                                     banks(i).IBM.L_prov_tot_loans;
                                                     banks(i).IBM.hoarding;
                                                     banks(i).IBM.L_tot_loans;
                                                     banks(i).IBM.L_tot_exp_repay;
-                                                    banks(i).IBM.L_tot_repaid_loans];
+                                                    banks(i).IBM.L_tot_repaid_loans
+                                                    banks(i).balancesheet.assets.cash(1:banks(i).failtime,3)'];
                                                 
    tempL =  lender_array;
    clearvars lender_array
@@ -49,9 +54,11 @@ for i = 1:n_banks
                                                     banks(i).IBM.B_tot_requests;
                                                     banks(i).IBM.B_tot_loans;
                                                     banks(i).IBM.B_req_tot_loanrepay;
+                                                    (banks(i).balancesheet.assets.cash(1:banks(i).failtime,2).*(1-MRR))';
                                                     banks(i).firesales.tot_des_FS;
                                                     banks(i).firesales.final_firesales;
-                                                    banks(i).IBM.B_fin_tot_loanrepay];
+                                                    banks(i).IBM.B_fin_tot_loanrepay
+                                                    banks(i).balancesheet.assets.cash(1:banks(i).failtime,3)'];
                                               
    tempB = borrower_array;
    clearvars borrower_array

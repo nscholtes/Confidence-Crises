@@ -1,6 +1,14 @@
 function Results_IBM(fig_output,TOT_T_matrices,TOT_NT_matrices,IBratemat,T)
 
 fig_output_IBM = strcat(fig_output,'Results/');
+tol = 1.e-6;
+
+for t=1:T
+    
+    if abs(TOT_T_matrices(11,t)-TOT_T_matrices(12,t)) < tol
+        TOT_T_matrices(12,t) = TOT_T_matrices(11,t);
+    end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Interbank market %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -32,6 +40,8 @@ subplot(1,2,1)
     title('(a)','Interpreter','latex')
 subplot(1,2,2)
     plot(TOT_T_matrices(11,:)-TOT_T_matrices(12,:),'Color','k','LineWidth',1.1)
+    grid on;
+    legend({'Final - required repayment'},'Location','best','FontSize',8)
     xlabel('Iteration step','Interpreter','latex')
     title('(b)','Interpreter','latex')
 set(gcf,'renderer','painters');

@@ -1,6 +1,6 @@
 function [banks,DBV,DLV,NT_matrices,NNT_matrices]...
-    =Phase1(banks,ActiveBanks,ibn_adjmat,n_banks,beta,Pars_interestrates,Pars_dshock,Pars_policy,information,...
-    NT_matrices,NNT_matrices,t,fileID_D,writeoption)
+    =Phase1(banks,ActiveBanks,ibn_adjmat,n_banks,beta,Pars_interestrates,Pars_dshock,Pars_policy,...
+    NT_matrices,NNT_matrices,t,fileID_D,writeoption,tol)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -18,7 +18,6 @@ function [banks,DBV,DLV,NT_matrices,NNT_matrices]...
 %-------------------------------------------------------------------------
 
 tau = 2;
-tol = 1.e-6;
 
 % Assigning variables
 
@@ -82,7 +81,7 @@ dshock_mean = mean(dshock_store);
 for i = ActiveBanks
     % Update deposits
     
-    %banks(i).depositshock(t) = banks(i).depositshock(t) - dshock_mean;
+    banks(i).depositshock(t) = banks(i).depositshock(t) - dshock_mean;
     
     banks(i).balancesheet.liabilities.deposits(t,tau) = banks(i).balancesheet.liabilities.deposits(t,tau-1) + banks(i).depositshock(t);
     
@@ -107,9 +106,13 @@ for i = ActiveBanks
             
         elseif t>1
             
-            banks(i).balancesheet.assets.des_investment(t)     =  mean(banks(i).balancesheet.assets.investment(1:t-1));
+            banks(i).balancesheet.assets.des_investment(t)     =  nanmean(banks(i).balancesheet.assets.investment(1:t-1));
             
 % Banks seek to maintain a constant level of private sector investment in each period.
+
+    banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau)...
+         + r_e.* banks(i).balancesheet.assets.external_assets(t,tau-1)... % Receive interest on external asset portfolio;
+         - r_d.*banks(i).balancesheet.liabilities.deposits(t,tau); % Interest on new deposits paid out
 
 % CASE I: Deposit shock sufficient to cover investment requirement (best-case scenario)
             if banks(i).depositshock(t) >= banks(i).balancesheet.assets.des_investment(t)
@@ -123,7 +126,7 @@ for i = ActiveBanks
 % CASE II: Deposit shock insufficient but difference can be covered by excess reserves (intermediate scenario) 
 %%% Make investment but results in a decrease in reserves
             elseif banks(i).depositshock(t) < banks(i).balancesheet.assets.des_investment(t)  &&...
-                    (banks(i).balancesheet.assets.des_investment(t)  - banks(i).depositshock(t))  <= (1-MRR)*banks(i).balancesheet.assets.cash(t,tau-1)
+                    (banks(i).balancesheet.assets.des_investment(t)  - banks(i).depositshock(t))  <= (1-MRR)*banks(i).balancesheet.assets.cash(t,tau)
                 
                  banks(i).balancesheet.assets.investment(t)     =  banks(i).balancesheet.assets.des_investment(t);
                  
@@ -133,9 +136,9 @@ for i = ActiveBanks
   % CASE III: Deposit shock insufficient to make desired investment and excess reserves insufficient to cover difference (worst-case scenario)  
   %%% Allocate up to maximum allowable (such that minimum reserve requirement becomes binding)
              elseif banks(i).depositshock(t) < banks(i).balancesheet.assets.des_investment(t)  &&...
-                    (banks(i).balancesheet.assets.des_investment(t)  - banks(i).depositshock(t))  > (1-MRR)*banks(i).balancesheet.assets.cash(t,tau-1)
+                    (banks(i).balancesheet.assets.des_investment(t)  - banks(i).depositshock(t))  > (1-MRR)*banks(i).balancesheet.assets.cash(t,tau)
                 
-                 banks(i).balancesheet.assets.investment(t)     =  (1-MRR)*banks(i).balancesheet.assets.cash(t,tau-1)+banks(i).depositshock(t);
+                 banks(i).balancesheet.assets.investment(t)     =  (1-MRR)*banks(i).balancesheet.assets.cash(t,tau)+banks(i).depositshock(t);
                  
                  banks(i).balancesheet.assets.cash(t,tau) = (MRR)*banks(i).balancesheet.assets.cash(t,tau);
             else
@@ -216,33 +219,10 @@ for i = 1:numel(DBV)
     
     expost_adjmat(DBV(i),banks(DBV(i)).counterpartyids) = 0;  
     
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%       
-% Under perfect information, borrowers know which of their counterparties
-% were hit by a liquidity shock and will distribute their aggregate request
-% across designated lenders within their counterparty set.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % -/- Filter: borrowers will not request liquidity from other borrowers under perfect information:
+        
+    expost_adjmat(DBV(i),banks(DBV(i)).nonlending_cps) = zeros(1,numel(banks(DBV(i)).nonlending_cps));
 
-    if strcmp(information,'perfect')
-        
-        % -/- Filter: borrowers will not request liquidity from other
-        % borrowers under perfect information:
-        
-        expost_adjmat(DBV(i),banks(DBV(i)).nonlending_cps) = zeros(1,numel(banks(DBV(i)).nonlending_cps));
-        
-        banks(DBV(i)).final_cps     = banks(DBV(i)).lending_cps;
-        banks(DBV(i)).num_final_cps(t) = banks(DBV(i)).numlending_cps(t);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Under imperfect information, borrowers do not know shock sign distribution
-%so will make requests across ALL counterparties.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    elseif strcmp(information,'imperfect')
-        
-        banks(DBV(i)).final_cps        = banks(DBV(i)).counterpartyids;
-        banks(DBV(i)).num_final_cps(t) = banks(DBV(i)).num_counterparties(t);
-        
-    end    
 end
 
 for i = 1:numel(DLV)
@@ -274,7 +254,7 @@ myprint(writeoption,fileID_D,'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 myprint(writeoption,fileID_D,'Phase 1\r\n');
 myprint(writeoption,fileID_D,'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\r\n');
 myprint(writeoption,fileID_D,'**********************************************************************************\r\n');
-myprint(writeoption,fileID_D,'**************** Information in the current simulation is %s ****************\r\n',information);
+%myprint(writeoption,fileID_D,'**************** Information in the current simulation is %s ****************\r\n',information);
 myprint(writeoption,fileID_D,'**********************************************************************************\r\n');
 
 myprint(writeoption,fileID_D,'====================================================================================================================================================================\r\n');
@@ -284,6 +264,8 @@ myprint(writeoption,fileID_D,'==================================================
 for i = 1:numel(DBV)
     
     % Variables associated to lenders are set = NaN
+    
+    banks(DBV(i)).numborrowing_cps(t)     = NaN;
     
     banks(DBV(i)).IBM.L_noCP(t)           = NaN;
     banks(DBV(i)).IBM.L_bil_requests      = NaN;
@@ -303,17 +285,16 @@ for i = 1:numel(DBV)
 if t == 1
     banks(DBV(i)).balancesheet.assets.des_investment(t) = abs(banks(DBV(i)).depositshock(t));
 elseif t > 1
-    banks(DBV(i)).balancesheet.assets.des_investment(t) =  mean(banks(DBV(i)).balancesheet.assets.investment(1:t-1));  
+    banks(DBV(i)).balancesheet.assets.des_investment(t) =  nanmean(banks(DBV(i)).balancesheet.assets.investment(1:t-1));  
 end
 
-% Absorbing negative deposit shock into bank capital
-
-%banks(DBV(i)).balancesheet.liabilities.capital(t,tau) = banks(DBV(i)).balancesheet.liabilities.capital(t,tau)+...
-    %abs(banks(DBV(i)).depositshock(t));
+    banks(DBV(i)).balancesheet.assets.cash(t,tau) = banks(DBV(i)).balancesheet.assets.cash(t,tau)...
+         + r_e.* banks(DBV(i)).balancesheet.assets.external_assets(t,tau-1)... % Receive interest on external asset portfolio;
+         - r_d.*banks(DBV(i)).balancesheet.liabilities.deposits(t,tau);        % Interest on new deposits paid out
               
 % Contingency when shock sign distribution is such that borrower i has no counterparties from which it can request liquidity 
     
-    if isempty(banks(DBV(i)).final_cps)
+    if isempty(banks(DBV(i)).lending_cps)
         
         myprint(writeoption,fileID_D,'Borrower %d has NO lending counterparties in period %d\r\n',DBV(i),t);
         myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
@@ -325,28 +306,76 @@ end
         banks(DBV(i)).IBM.B_tot_requests(t) = 0;
         banks(DBV(i)).IBM.B_tot_loans(t)    = 0;
         banks(DBV(i)).IBM.B_noCP(t)         = 1;
+        
+        if (1-MRR)*banks(DBV(i)).balancesheet.assets.cash(t,tau) >= banks(DBV(i)).balancesheet.assets.des_investment(t)
+            
+             banks(DBV(i)).balancesheet.assets.investment(t) = banks(DBV(i)).balancesheet.assets.des_investment(t);
+             
+            myprint(writeoption,fileID_D,'--> Sufficient reserves to make investment (%.3f>%.3f)\r\n',...
+            banks(DBV(i)).balancesheet.assets.cash(t,tau),banks(DBV(i)).balancesheet.assets.des_investment(t));
+             
+             banks(DBV(i)).balancesheet.assets.cash(t,tau)   = banks(DBV(i)).balancesheet.assets.cash(t,tau) - ...
+                 banks(DBV(i)).balancesheet.assets.investment(t);
+            
+            myprint(writeoption,fileID_D,'--> Updated reserves given by %.3f\r\n',banks(DBV(i)).balancesheet.assets.cash(t,tau));
+        
+        elseif (1-MRR)*banks(DBV(i)).balancesheet.assets.cash(t,tau) < banks(DBV(i)).balancesheet.assets.des_investment(t)
+            
+            banks(DBV(i)).balancesheet.assets.investment(t) = (1-MRR)*banks(DBV(i)).balancesheet.assets.cash(t,tau);
+            
+            myprint(writeoption,fileID_D,'--> Insufficient reserves (%.3f<%3f) to make investment\r\n',...
+            (1-MRR)*banks(DBV(i)).balancesheet.assets.cash(t,tau),banks(DBV(i)).balancesheet.assets.des_investment(t));
+            
+            banks(DBV(i)).balancesheet.assets.cash(t,tau)   = MRR*banks(DBV(i)).balancesheet.assets.cash(t,tau);
+            
+            myprint(writeoption,fileID_D,'Allocate up to maximum allowable. Updated reserves given by %.3f\r\n',...
+                banks(DBV(i)).balancesheet.assets.cash(t,tau));
+        end 
           
-    else
+    elseif ~isempty(banks(DBV(i)).lending_cps)
     
-        myprint(writeoption,fileID_D,'Borrower %d has %d lending counterparties in period %d\r\n',DBV(i),banks(DBV(i)).num_final_cps(t),t);
+        myprint(writeoption,fileID_D,'Borrower %d has %d lending counterparties in period %d\r\n',DBV(i),banks(DBV(i)).numlending_cps(t),t);
         myprint(writeoption,fileID_D,'--> Borrower %d has %d counterparties who are borrowers themselves in period %d\r\n',DBV(i),banks(DBV(i)).numnonlending_cps(t),t);
         
-        banks(DBV(i)).IBM.B_tot_requests(t) = banks(DBV(i)).balancesheet.assets.des_investment(t);
+        %  Case I: Can make desire investment using excess reserves --> No need for interbank borrowing
+        if banks(DBV(i)).balancesheet.assets.cash(t,tau)*(1-MRR) >= banks(DBV(i)).balancesheet.assets.des_investment(t)
+            
+            banks(DBV(i)).IBM.B_tot_requests(t) = tol;
+            
+            banks(DBV(i)).IBM.B_bil_requests =  ones(1,banks(DBV(i)).numlending_cps(t))...
+            .*((1./banks(DBV(i)).numlending_cps(t)).*banks(DBV(i)).IBM.B_tot_requests(t));
         
-        banks(DBV(i)).IBM.B_bil_requests = ones(1,banks(DBV(i)).num_final_cps(t))...
-            .*((1./banks(DBV(i)).num_final_cps(t)).*banks(DBV(i)).IBM.B_tot_requests(t));
+            borr_req_mat(DBV(i),banks(DBV(i)).lending_cps,t) = banks(DBV(i)).IBM.B_bil_requests;
         
-        borr_req_mat(DBV(i),banks(DBV(i)).final_cps,t) = banks(DBV(i)).IBM.B_bil_requests;
+            banks(DBV(i)).IBM.B_noCP(t) = 0;
+            
+            banks(DBV(i)).balancesheet.assets.investment(t) = banks(DBV(i)).balancesheet.assets.des_investment(t);
+            
+            banks(DBV(i)).balancesheet.assets.cash(t,tau) =  banks(DBV(i)).balancesheet.assets.cash(t,tau)-...
+                banks(DBV(i)).balancesheet.assets.investment(t);
+            
+        % Case II: Inadequate reserves: Allocate up to maximum allowable and obtain remainder from the interbank market     
+        elseif banks(DBV(i)).balancesheet.assets.cash(t,tau)*(1-MRR) < banks(DBV(i)).balancesheet.assets.des_investment(t)
+            
+            banks(DBV(i)).IBM.B_tot_requests(t) = banks(DBV(i)).balancesheet.assets.des_investment(t) -...
+                banks(DBV(i)).balancesheet.assets.cash(t,tau)*(1-MRR) ;
         
-        banks(DBV(i)).IBM.B_noCP(t) = 0;
+            banks(DBV(i)).IBM.B_bil_requests = ones(1,banks(DBV(i)).numlending_cps(t))...
+            .*((1./banks(DBV(i)).numlending_cps(t)).*banks(DBV(i)).IBM.B_tot_requests(t));
         
-        myprint(writeoption,fileID_D,'Borrower %d requests %.3f from each  of the %d lending counterparties in period %d\r\n',...
-            DBV(i),(1./banks(DBV(i)).num_final_cps(t)).*banks(DBV(i)).IBM.B_tot_requests(t),banks(DBV(i)).num_final_cps(t),t);
-        myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
+            banks(DBV(i)).balancesheet.assets.cash(t,tau) =  MRR*banks(DBV(i)).balancesheet.assets.cash(t,tau);
         
+            borr_req_mat(DBV(i),banks(DBV(i)).lending_cps,t) = banks(DBV(i)).IBM.B_bil_requests;
+        
+            banks(DBV(i)).IBM.B_noCP(t) = 0;
+        
+            myprint(writeoption,fileID_D,'Borrower %d requests %.3f from each  of the %d lending counterparties in period %d\r\n',...
+                DBV(i),(1./banks(DBV(i)).numlending_cps(t)).*banks(DBV(i)).IBM.B_tot_requests(t),banks(DBV(i)).numlending_cps(t),t);
+            myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
+        
+        end
     end
 end
-
 % For consistency: transpose such that rows (columns) correspond to lender
 % (borrowers)
 
@@ -373,6 +402,8 @@ for i = 1:numel(DLV)
     
     % Variables associated to borrowers are set = NaN
     
+    banks(DLV(i)).numlending_cps(t)     = NaN;
+    
     banks(DLV(i)).IBM.B_noCP(t)         = NaN;
     banks(DLV(i)).IBM.B_suff_loans(t)   = NaN;
     
@@ -384,9 +415,6 @@ for i = 1:numel(DLV)
     
     % 2nd end of phase update (LENDERS): Lenders determine cash available + extra income to make interbank loans
     
-    banks(DLV(i)).balancesheet.assets.cash(t,tau) = banks(DLV(i)).balancesheet.assets.cash(t,tau)...
-        + r_e.* banks(DLV(i)).balancesheet.assets.external_assets(t,tau-1)... % Receive interest on external asset portfolio
-        - r_d.*banks(DLV(i)).balancesheet.liabilities.deposits(t,tau); % Interest on deposits paid out
     
     temp_reqstore = borr_req_mat(DLV(i),:,t);
     temp_reqstore(temp_reqstore==0)=[];
@@ -400,8 +428,7 @@ for i = 1:numel(DLV)
         
         myprint(writeoption,fileID_D,'Lender %d has NO borrowing counterparties in period %d\r\n',DLV(i),t);
         myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
-        
-             
+          
         banks(DLV(i)).IBM.hoarding(t)             = 0; % Lender hoarding
         banks(DLV(i)).IBM.L_hoardingmultiplier(t) = 0;
         banks(DLV(i)).IBM.L_bil_loans             = 0;
@@ -443,7 +470,7 @@ for i = 1:numel(DLV)
                 myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
                 
          % CASE II:  Total requests > available reserves --> Lender allocates maximum allowable which is divided equally across counterparties and
-         % compared to each bilateral request individually using the same min{allocated bilateral funds; request} approach.
+         % compared to each bilateral request individually using the same min{allocated bilateral funds;request} approach.
                
             elseif abs(banks(DLV(i)).IBM.L_prov_tot_loans(t) - banks(DLV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)) < tol
                 
@@ -485,9 +512,9 @@ for i = 1:numel(DLV)
                         banks(DLV(i)).IBM.L_hoardingmultiplier(t) = (banks(DLV(i)).IBM.B_tot_loans(t_search)./...
                             banks(DLV(i)).IBM.B_tot_requests(t_search));
                                          
-                        banks(DLV(i)).IBM.L_tot_loans(t)  = banks(DLV(i)).IBM.L_hoardingmultiplier(t).*banks(DLV(i)).IBM.L_prov_tot_loans(t);
+                        banks(DLV(i)).IBM.L_tot_loans(t)  = banks(DLV(i)).IBM.L_hoardingmultiplier(t).*banks(DLV(i)).IBM.L_tot_loans(t);
                         
-                        banks(DLV(i)).IBM.hoarding(t)   = (1-banks(DLV(i)).IBM.L_hoardingmultiplier(t)).*banks(DLV(i)).IBM.L_prov_tot_loans(t);
+                        banks(DLV(i)).IBM.hoarding(t)   = (1-banks(DLV(i)).IBM.L_hoardingmultiplier(t)).*banks(DLV(i)).IBM.L_tot_loans(t);
                         
                         if abs(banks(DLV(i)).IBM.hoarding(t)) < tol
                             banks(DLV(i)).IBM.hoarding(t) = 0;
@@ -501,6 +528,9 @@ for i = 1:numel(DLV)
                             %banks(DLV(i)).IBM.L_tot_loans(t) == banks(DLV(i)).IBM.L_tot_requests(t)
                                             
                             banks(DLV(i)).IBM.L_bil_loans = banks(DLV(i)).IBM.L_bil_requests;
+                            
+                            banks(DLV(i)).IBM.L_tot_loans(t) = sum(banks(DLV(i)).IBM.L_bil_loans);
+
                         
                             myprint(writeoption,fileID_D,'--> After hoarding, Lender %d has sufficient reserves to match all requests in period %d\r\n',DLV(i),t);
                         
@@ -562,18 +592,11 @@ myprint(writeoption,fileID_D,'==================================================
 
 for i = 1:numel(DBV)
     
-    banks(DBV(i)).IBM.L_bil_exp_repay = NaN;
+    banks(DBV(i)).IBM.L_bil_exp_repay    = NaN;
     banks(DBV(i)).IBM.L_tot_exp_repay(t) = NaN;
     
     % 2nd end of phase update (BORROWERS): Borrowers determine available reserves prior to receiving interbank loans
-
-     banks(DBV(i)).balancesheet.assets.cash(t,tau) =...
-        banks(DBV(i)).balancesheet.assets.cash(t,tau)...
-        + r_e.* banks(DBV(i)).balancesheet.assets.external_assets(t,tau-1)...
-        - r_d.*banks(DBV(i)).balancesheet.liabilities.deposits(t,tau);
-               
-    %banks(DBV(i)).balancesheet.assets.investment(t) = banks(DBV(i)).balancesheet.assets.des_investment(t);
-             
+                            
     temp_loanstore = lender_lend_mat(:,DBV(i))';
     temp_loanstore(temp_loanstore==0)=[];
     
@@ -582,112 +605,23 @@ for i = 1:numel(DBV)
     clearvars temp_loanstore
   
     banks(DBV(i)).IBM.B_tot_loans(t)   = sum(banks(DBV(i)).IBM.B_bil_loans);
-
-% Case I: Borrowers obtain total requested liquidity on the interbank market to make desired investment - no change in reserves
-
-    if (banks(DBV(i)).IBM.B_tot_loans(t) - banks(DBV(i)).IBM.B_tot_requests(t)) < tol && ~isempty(banks(DBV(i)).final_cps)
+    
+    %%%
+    
+    if banks(DBV(i)).IBM.B_tot_requests(t) ~= tol && ~isempty(banks(DBV(i)).lending_cps)
+         
+        banks(DBV(i)).balancesheet.assets.investment(t) = banks(DBV(i)).balancesheet.assets.cash(t,tau)*(1-MRR)+...
+            banks(DBV(i)).IBM.B_tot_loans(t);
         
-        banks(DBV(i)).IBM.B_suff_loans(t) = 1;
-            
-        % Make desired investment
-        banks(DBV(i)).balancesheet.assets.investment(t) = banks(DBV(i)).balancesheet.assets.des_investment(t);
-        
+     
         myprint(writeoption,fileID_D,'Borrower %d obtained the requested loans and made the desired investment of %.3f in period %d\r\n',...
             DBV(i),banks(DBV(i)).balancesheet.assets.investment(t),t);
         
         myprint(writeoption,fileID_D,'Borrower %d loan/request = %.3f percent in period %d\r\n',...
             DBV(i),banks(DBV(i)).IBM.B_tot_loans(t)/banks(DBV(i)).IBM.B_tot_requests(t)*100,t);
         myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
-                 
-% Case 2: Obtain less than requested liquidity
-  
-    elseif (banks(DBV(i)).IBM.B_tot_loans(t) - banks(DBV(i)).IBM.B_tot_requests(t)) > tol && ~isempty(banks(DBV(i)).final_cps)
-        
-        banks(DBV(i)).IBM.B_suff_loans(t) = 0;        
-        
-% Case 2-1: Allocate available reserves to offset deposit shock: Reserves are sufficient
-        
-        if banks(DBV(i)).balancesheet.assets.cash(t,tau)*(1-MRR) >= banks(DBV(i)).IBM.B_tot_requests(t) - banks(DBV(i)).IBM.B_tot_loans(t)
-            
-            banks(DBV(i)).balancesheet.assets.investment(t) = banks(DBV(i)).balancesheet.assets.des_investment(t);
-                       
-            myprint(writeoption,fileID_D,'Borrower %d is short %.3f required to make desired investment of %.3f in period %d\r\n',...
-                DBV(i),banks(DBV(i)).IBM.B_tot_requests(t)-banks(DBV(i)).IBM.B_tot_loans(t),...
-                banks(DBV(i)).balancesheet.assets.des_investment(t),t);
-        
-            % Allocate reserves if interbank loans are insufficient to make investment
-            
-            banks(DBV(i)).balancesheet.assets.cash(t,tau)= banks(DBV(i)).balancesheet.assets.cash(t,tau)- ...
-               (banks(DBV(i)).IBM.B_tot_requests(t) - banks(DBV(i)).IBM.B_tot_loans(t));
-         
-            myprint(writeoption,fileID_D,'--> Allocate %.3f from reserves. Updated reserves given by: %.3f\r\n',...
-                banks(DBV(i)).IBM.B_tot_requests(t) - banks(DBV(i)).IBM.B_tot_loans(t),banks(DBV(i)).balancesheet.assets.cash(t,tau));
-
-            myprint(writeoption,fileID_D,' --> Borrower %d loan/request = %.3f percent in period %d\r\n',...
-            DBV(i),banks(DBV(i)).IBM.B_tot_loans(t)/banks(DBV(i)).IBM.B_tot_requests(t)*100,t);   
-        
-        myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
-        
-% Case 2-2: Allocate available reserves to offset deposit shock: Insufficient reserves, allocate up to maximum allowable
-
-        elseif banks(DBV(i)).balancesheet.assets.cash(t,tau)*(1-MRR) < banks(DBV(i)).IBM.B_tot_requests(t) - banks(DBV(i)).IBM.B_tot_loans(t)
-            
-            banks(DBV(i)).balancesheet.assets.cash(t,tau) = MRR.*banks(DBV(i)).balancesheet.assets.cash(t,tau);
-            
-            banks(DBV(i)).balancesheet.assets.investment(t) = banks(DBV(i)).IBM.B_tot_loans(t) + banks(DBV(i)).balancesheet.assets.cash(t,tau)*(1-MRR);
-
-            myprint(writeoption,fileID_D,'Borrower %d allocates all available reserves (%.3f) towards investment in period %d\r\n',...
-                DBV(i),banks(DBV(i)).balancesheet.assets.cash(t,tau)*(1-MRR),t);
-            
-            myprint(writeoption,fileID_D,'Final investment of %.3f compared to desired level of %.3f',...
-               banks(DBV(i)).balancesheet.assets.investment(t),banks(DBV(i)).balancesheet.assets.des_investment(t));
-            
-            myprint(writeoption,fileID_D,'Borrower %d loan/request = %.3f percent in period %d\r\n',...
-                DBV(i),banks(DBV(i)).IBM.B_tot_loans(t)/banks(DBV(i)).IBM.B_tot_requests(t)*100,t);
-            myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
-            
-        else
-            disp('Error in borrower loan reception!')
-           
-        end
-        
-% Case 3: Borrower made no requests in current period.
-                               
-    elseif isempty(banks(DBV(i)).final_cps)
-        
-        banks(DBV(i)).IBM.B_suff_loans(t) = 0;
-
-        myprint(writeoption,fileID_D,'Borrower  %d has no eligible counterparties (so no requests) in period %d\r\n',DBV(i),t);
-        
-        if (1-MRR)*banks(DBV(i)).balancesheet.assets.cash(t,tau) >= banks(DBV(i)).balancesheet.assets.des_investment(t)
-            
-             banks(DBV(i)).balancesheet.assets.investment(t) = banks(DBV(i)).balancesheet.assets.des_investment(t);
-             
-            myprint(writeoption,fileID_D,'--> Sufficient reserves to make investment (%.3f>%.3f)\r\n',...
-            banks(DBV(i)).balancesheet.assets.cash(t,tau),banks(DBV(i)).balancesheet.assets.des_investment(t));
-             
-             banks(DBV(i)).balancesheet.assets.cash(t,tau)   = banks(DBV(i)).balancesheet.assets.cash(t,tau) - ...
-                 banks(DBV(i)).balancesheet.assets.investment(t);
-            
-            myprint(writeoption,fileID_D,'--> Updated reserves given by %.3f\r\n',banks(DBV(i)).balancesheet.assets.cash(t,tau));
-        
-        elseif (1-MRR)*banks(DBV(i)).balancesheet.assets.cash(t,tau) < banks(DBV(i)).balancesheet.assets.des_investment(t)
-            
-            banks(DBV(i)).balancesheet.assets.investment(t) = (1-MRR)*banks(DBV(i)).balancesheet.assets.cash(t,tau);
-            
-            myprint(writeoption,fileID_D,'--> Insufficient reserves (%.3f<%3f) to make investment\r\n',...
-            (1-MRR)*banks(DBV(i)).balancesheet.assets.cash(t,tau),banks(DBV(i)).balancesheet.assets.des_investment(t));
-            
-            banks(DBV(i)).balancesheet.assets.cash(t,tau)   = MRR*banks(DBV(i)).balancesheet.assets.cash(t,tau);
-            
-            myprint(writeoption,fileID_D,'Allocate up to maximum allowable. Updated reserves given by %.3f\r\n',...
-                banks(DBV(i)).balancesheet.assets.cash(t,tau));
-        end 
-                  
-        myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');    
-    else
-        disp('Error in borrower IB loan decision!')
-     end
+    end
+                
 end
          
 %-------------------------------------------------------------------------

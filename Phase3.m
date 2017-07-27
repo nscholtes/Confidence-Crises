@@ -1,8 +1,12 @@
-function [banks,banksfail,n_banks,ibn_adjmat,opn_adjmat,FailCount,FailedBankID,ActiveAssets,num_IA,AP] = ...
-    Phase3(banks,banksfail,n_banks,m_assets,r_z,ibn_adjmat,opn_adjmat,AP,...
-    FailCount,FailedBankID,ActiveBanks,ActiveAssets,num_IA,t,T)
+function [banks,NMT_matrices,banksfail,n_banks,ibn_adjmat,opn_adjmat,FailCount,FailedBankID,ActiveAssets] = ...
+    Phase3(banks,NMT_matrices,banksfail,n_banks,m_assets,r_z,ibn_adjmat,opn_adjmat,AP,...
+    FailCount,FailedBankID,ActiveBanks,ActiveAssets,t,T)
 
 tau = 4;
+
+ea_holdings_mat = NMT_matrices(:,:,(4*t),1);
+ea_port_mat     = NMT_matrices(:,:,(4*t),2);
+
 
 for i = ActiveBanks
     
@@ -22,6 +26,18 @@ for i = ActiveBanks
         banks(i).balancesheet.liabilities.deposits(t,tau-2);
     
     banks(i).balancesheet.liabilities.total(t,tau) = banks(i).balancesheet.assets.total(t,tau);
+    
+    if t<5
+        insolvencyrequirement(i) = logical(banks(i).balancesheet.liabilities.capital(t,tau) < 0);
+    else
+        insolvencyrequirement(i) = logical(banks(i).balancesheet.liabilities.capital(t,tau)   < 0 &&...
+                                    banks(i).balancesheet.liabilities.capital(t-1,tau) < 0 &&...
+                                    banks(i).balancesheet.liabilities.capital(t-2,tau) < 0);
+                                
+                                %&&...
+                                  %  banks(i).balancesheet.liabilities.capital(t-3,tau) < 0 && ...
+                                  %  banks(i).balancesheet.liabilities.capital(t-4,tau));
+    end
         
 end
 
@@ -29,7 +45,7 @@ end
 
 for i = ActiveBanks
         
-    if banks(i).balancesheet.liabilities.capital(t,tau) < -banks(i).balancesheet.liabilities.capital(1,1)
+    if insolvencyrequirement(i)
         
         % Report bank as failed
         FailCount    = FailCount + 1;
@@ -58,6 +74,9 @@ for i = ActiveBanks
            
             banks(j).balancesheet.assets.external_asset_port((4*t),:) = banks(j).balancesheet.assets.external_asset_holdings((4*t),:).*...
                 AP(banks(j).balancesheet.assets.external_asset_ids);
+            
+            ea_holdings_mat(i,banks(i).balancesheet.assets.external_asset_ids) = banks(i).balancesheet.assets.external_asset_holdings(4*t,:);
+            ea_port_mat(i,banks(i).balancesheet.assets.external_asset_ids)     = banks(i).balancesheet.assets.external_asset_port(4*t,:);
              
         end
         
@@ -75,48 +94,25 @@ for i = ActiveBanks
         banks(i).IBrolewhenfail = [];
         banks(i).failtime    = T;
         
-        
         continue       
-    end   
+    end  
+    % Assets after end-of-period returns paid on investment
+        banks(i).balancesheet.assets.total(t,tau) = banks(i).balancesheet.assets.cash(t,tau)+...
+        banks(i).balancesheet.assets.external_assets(t,tau);
+    
+    % Liabilities
+    banks(i).balancesheet.liabilities.capital(t,tau) = banks(i).balancesheet.assets.total(t,tau)-...
+        banks(i).balancesheet.liabilities.deposits(t,tau-2);
+    
+    banks(i).balancesheet.liabilities.total(t,tau) = banks(i).balancesheet.assets.total(t,tau);
 end
 
 % Identify assets that are no longer active (no holdings by any active banks)
 
 InactiveAssets = find(sum(opn_adjmat(:,ActiveAssets))==0);
+ActiveAssets   = setdiff(ActiveAssets,InactiveAssets);
 
-if isempty(InactiveAssets)
-    num_IA = 0;
-else
-    num_IA = numel(InactiveAssets);
-end
-
-% if t>1
-%     IACount(2) = num_InactiveAssets - IACount(1);
-% else
-%     IACount(2) = num_InactiveAssets;
-% end
-
-%IACount = IACount(2);
-
-% for i = ActiveBanks
-%     for j = InactiveAssets
-%         if ismember(j,banks(i).balancesheet.assets.external_asset_ids)
-%             
-%             Inactive_index = find(banks(i).balancesheet.assets.external_asset_ids==j)
-%             banks(i).balancesheet.assets.external_asset_ids(Inactive_index) = [];
-%             
-%             banks(i).balancesheet.assets.external_asset_holdings((4*t),:) = ea_holdings_mat(i,banks(i).balancesheet.assets.external_asset_ids,2);
-%             banks(i).balancesheet.assets.external_asset_port((4*t),:)     = ea_port_mat(i,banks(i).balancesheet.assets.external_asset_ids,2);
-%             
-%             AP(Inactive_index) = NaN;
-%             
-%         end
-%     end
-% end
-            
-ActiveAssets = setdiff(ActiveAssets,InactiveAssets);
-
-%FailedBanks = unique([FailedBanks find(FailedBankID)]);
-%ActiveBanks = setdiff(ActiveBanks,FailedBanks);
+NMT_matrices(:,:,(4*t),1) = ea_holdings_mat(:,:);
+NMT_matrices(:,:,(4*t),2) = ea_port_mat(:,:);
 
 end

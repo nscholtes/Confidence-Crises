@@ -49,6 +49,8 @@ writeoption = 'N';
 % Select whether to plot network in Gephi or MATLAB (Input: Gephi/MATLAB)
 graphoption = 'MATLAB';
 
+tol = 1.e-6; % Tolerance value for == conditional statements
+
 %--------------------------------------------------------------------------
 % CALIBRATION OF SIMULATION PARAMETERS
 %--------------------------------------------------------------------------
@@ -74,7 +76,7 @@ av_div   = 10;   % Average number of assets held per bank (diversification)
 
 ActiveAssets = 1:m_assets;
 
-Pars_opnet = [m_assets, av_div];
+Pars_opnet = [m_assets,av_div];
 
 %--------------------------------------------------------------------------
 % Agent-Based Model Parameters
@@ -84,7 +86,7 @@ Pars_opnet = [m_assets, av_div];
 % Model timing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-T = 1000;        % Number of iteration steps
+T = 500;        % Number of iteration steps
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Initial balance sheet weights
@@ -99,7 +101,7 @@ Pars_balancesheet= [alpha beta];
 % Liquidity and portfolio shock
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-information = 'perfect';
+%information = 'perfect';
 
 % Liquidity (deposit shock)
 
@@ -107,22 +109,31 @@ theta = 0.5;   % Multiplier for mean-reverting component
 SPF   = 0.025; % Shock proportionality factor
 
 % Portfolio shock
-shocktime   = T/2; 
+shocktime   = T/2:(T/2)+10; 
 
-num_shocked_ea_S = m_assets/5;
+num_shocked_ea_S = m_assets;
 eashock_LB_S     = 0.9;
 eashock_UB_S     = 1.1;
 market_depth_S   = 0.2*ones(1,m_assets); % Market depth of assets used in firesale computation
     
-num_shocked_ea_C = m_assets;
-eashock_LB_C     = 0.75;
+num_shocked_ea_C = m_assets/5;
+eashock_LB_C     = 0.8;
 eashock_UB_C     = 1;
-market_depth_C    = 0.5*ones(1,m_assets);
+market_depth_C   = 0.8*ones(1,m_assets);
     
 %Collecting parameters
 Pars_dshock  = [theta SPF];
 Pars_pshock = [num_shocked_ea_S, eashock_LB_S, eashock_UB_S market_depth_S;
     num_shocked_ea_C, eashock_LB_C, eashock_UB_C market_depth_C];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Policy experiment parameters
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+FLR  = 'on';  % Funding liquidity risk: Turn on/off lender hoarding
+FRFA = 'off'; % Fixed rate full allotment: Banks have unlimited access to CB liquidity
+
+Pars_experiments = {FLR, FRFA};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Interest rates
@@ -131,7 +142,7 @@ Pars_pshock = [num_shocked_ea_S, eashock_LB_S, eashock_UB_S market_depth_S;
 r_z  = 0.05; % Illiquid investment rate
 r_d  = 0.02; % Deposit rate
 r_e  = 0.03; % External asset return
-r_b  = 0.04; % Initial interbank rat
+r_b  = 0.04; % Initial interbank rate
 
 Pars_interestrates = [r_z r_d r_e r_b];
 
@@ -172,9 +183,9 @@ banksfail       = struct;
 assetprices     = ones(4*T,m_assets);
 NT_matrices     = zeros(n_banks,T,3);             % Shock distribution information
 NNT_matrices    = zeros(n_banks,n_banks,T,8);     % Matrix storing interbank variable dynamics
-NMT_matrices    = zeros (n_banks,m_assets,4*T,2); % Matrix storing external asset dynamics
+NMT_matrices    = zeros(n_banks,m_assets,4*T,2); % Matrix storing external asset dynamics
 TM_matrices     = zeros(T,m_assets,2);            % Matrix storing variables for market impact function following firesales 
-TOT_NT_matrices = zeros(n_banks,T,13);            % Collecting balance sheet and interbank market information for each period
+TOT_NT_matrices = zeros(n_banks,T,14);            % Collecting balance sheet and interbank market information for each period
 TOT_T_matrices  = zeros(14,T);
 dTOT_matrices   = zeros(6,T);
 
@@ -186,14 +197,12 @@ FailCount_vec    = zeros(1,T);
 FailedBankID_mat = zeros(T,n_banks);
 FailedBanks      = [];
 
-num_InactiveAssets = zeros(1,T);
-
 close all 
 clc
    
-%--------------------------------------------------------------------------
+%-----------------------------------------------------------------------------------------------------------------------------------------------------
 %% Agent-Based Model
-%--------------------------------------------------------------------------
+%-----------------------------------------------------------------------------------------------------------------------------------------------------
 tic
 for t=1:T
     if t==1
@@ -201,9 +210,9 @@ for t=1:T
     else  
         x = t-1;
     end        
-    if t < shocktime
+    if ~ismember(t,shocktime)
         Pars_pshock_current = Pars_pshock(1,:);
-    elseif t >= shocktime
+    elseif ismember(t,shocktime)
         Pars_pshock_current = Pars_pshock(2,:);
     end
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MODEL DYNAMICS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -213,15 +222,16 @@ for t=1:T
         Phase0(banks,ActiveBanks,a,Pars_balancesheet,T,t,IBN_adjmat(:,:,x),NMT_matrices,OPN_adjmat(:,:,x),assetprices);
 % Phase 1: Deposit shock, investment decision, interbank market
    [banks,DBV,DLV,NT_matrices,NNT_matrices] = ...
-        Phase1(banks,ActiveBanks,IBN_adjmat(:,:,x),n_banks,beta,Pars_interestrates,Pars_dshock,Pars_policy,information,NT_matrices,NNT_matrices,t,fileID_D,writeoption);
+        Phase1(banks,ActiveBanks,IBN_adjmat(:,:,x),n_banks,beta,Pars_interestrates,Pars_dshock,Pars_policy,...
+        NT_matrices,NNT_matrices,t,fileID_D,writeoption,tol);
 % Phase 2: Asset price shock, loan repayment, firesales and second round effects
    [banks,assetprices,OPN_adjmat(:,:,t),NMT_matrices,NNT_matrices,TM_matrices] = ...
         Phase2(banks,ActiveBanks,ActiveAssets,OPN_adjmat(:,:,x),Pars_pshock_current,Pars_policy,...
-        NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D,writeoption);
+        NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D,writeoption,tol);
 % Phase 3: Removal of insolvent banks and (possible) central bank intervention
-   [banks,banksfail,n_banks,IBN_adjmat(:,:,t),OPN_adjmat(:,:,t),FailCount_vec(t),FailedBankID_mat(t,:),ActiveAssets,num_InactiveAssets(t),assetprices(t,:)] =  ...
-       Phase3(banks,banksfail,n_banks,m_assets,Pars_interestrates(1),IBN_adjmat(:,:,x),OPN_adjmat(:,:,x),assetprices(t,:),...
-       FailCount_vec(t),FailedBankID_mat(t,:),ActiveBanks,ActiveAssets,num_InactiveAssets(t),t,T);      
+   [banks,NMT_matrices,banksfail,n_banks,IBN_adjmat(:,:,t),OPN_adjmat(:,:,t),FailCount_vec(t),FailedBankID_mat(t,:),ActiveAssets] =  ...
+       Phase3(banks,NMT_matrices,banksfail,n_banks,m_assets,Pars_interestrates(1),IBN_adjmat(:,:,x),OPN_adjmat(:,:,x),assetprices(4*t,:),...
+       FailCount_vec(t),FailedBankID_mat(t,:),ActiveBanks,ActiveAssets,t,T);      
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CURRENT ITERATION SUMMARY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     [TOT_NT_matrices(:,t,:),TOT_T_matrices(:,1:t),dTOT_matrices(:,t),...
         total_firesales_vec(:,:,t),d_assetprices((2*t)-1:2*t,:),d_firesales(t),FailedBanks,ActiveBanks] =...
@@ -238,8 +248,13 @@ for t=1:T
     clc;
 end
 toc
-
-abmresults = abmresults(banks,n_banks);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% COLLECTING ABM RESULTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
+abmresults = abmresults(banks,n_banks,Pars_policy);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CLEAN UP WORKSPACE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
+clearvars a a_max a_min alpha av_div beta d_assetprices d_firesales DBV DLV eashock_LB_C eashock_LB_S...
+    eashock_UB_C eashock_UB_S fileID_D fileID_IBN fileID_S gamma dTOT_matrices market_depth_C...
+    market_depth_S num_shocked_ea_C num_shocked_ea_S Pars_balancesheet Pars_dshock Pars_interestrates...
+    Pars_netgen Pars_opnet Pars_policy Pars_pshock Pars_pshock_current psi r_b r_d r_e r_z SPF theta tol
 %--------------------------------------------------------------------------
 %% Model output
 %--------------------------------------------------------------------------
@@ -260,32 +275,15 @@ networkparameters = [markernorm edgewnorm graphlayout];
 
 [Networkdata,Graphdata] = viewnetworks(fig_output,networkparameters,TOT_NT_matrices(:,[1 timeslices],NTvisualize),[1 timeslices],...
     cat(3,ibn_adjmat_init,IBN_adjmat(:,:,timeslices)),NNT_matrices(:,:,[1 timeslices],NNTvisualize),cat(3,opn_adjmat_init,OPN_adjmat(:,:,timeslices)));
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% CREATION OF TABLES
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%allparameters = [a_min,a_max,gamma,av_div,BS_parsvec,calibraterate_vec,n_banks,m_assets];
-%maketables(allparameters);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% SIMULATION RESULTS TO COMMAND WINDOW
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%allparameters = [a_min,a_max,gamma,av_div,BS_parsvec,calibraterate_vec,n_banks,m_assets];
-%allvariables  = [ActiveBanks,ActiveAssets,TOT_T_matrices,IBN_adjmat(:,:,[1,T])];
-
-%simoutput(allparameters,allvariables);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BALANCE SHEET DYNAMICS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-normalizegraph = 'Y'; % Y/N to normalize balance sheet variables by total assets
+normalizegraph = 'N'; % Y/N to normalize balance sheet variables by total assets
 Results_balancesheet(fig_output,TOT_T_matrices,TOT_NT_matrices,normalizegraph)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% INTERBANK MARKET DYNAMICS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Results_IBM(fig_output,TOT_T_matrices,TOT_NT_matrices,NNT_matrices(:,:,:,8),T)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SECURITIES MARKET DYNAMICS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Results_securitiesmarket(fig_output,TOT_T_matrices,TM_matrices,total_firesales_vec,assetprices,T);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% BANK FAILURE AND CENTRAL BANK INTERVENTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-[banksfail] = Results_failures(fig_output,n_banks,IBN_adjmat,OPN_adjmat,banksfail,FailedBanks,FailCount_vec,num_InactiveAssets,t,T);
-
+Results_failures(fig_output,n_banks,IBN_adjmat,OPN_adjmat,banksfail,FailedBanks,FailCount_vec,T);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-clearvars a a_max a_min alpha av_div beta d_assetprices d_firesales...
-DBV DLV dTOT_matrices eashock_LB_C eashock_LB_S eashock_UB_C eashock_UB_S gamma m_assets market_depth_C market_depth_S...
-MRR num_shocked_ea_C num_shocked_ea_S r_b r_d r_e r_z shocktime SPF statevar_vec theta
 
 end

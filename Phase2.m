@@ -1,6 +1,6 @@
 function [banks,assetprices,opn_adjmat,NMT_matrices,NNT_matrices,TM_matrices]...
             =Phase2(banks,ActiveBanks,ActiveAssets,opn_adjmat,Pars_pshock_current,Pars_policy,...
-            NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D,writeoption)
+            NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D,writeoption,tol)
         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -10,17 +10,16 @@ function [banks,assetprices,opn_adjmat,NMT_matrices,NNT_matrices,TM_matrices]...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %-------------------------------------------------------------------------
-%% INITIALISATION
+%% 1. INITIALISATION
 %-------------------------------------------------------------------------
 
 tau = 3;
-
 % Import state variables from topsim used in current phase
 
 num_shocked_ea = Pars_pshock_current(1);
 eashock_LB     = Pars_pshock_current(2);
 eashock_UB     = Pars_pshock_current(3);
-market_depth   = Pars_pshock_current(4);
+market_depth   = Pars_pshock_current(4:end);
 
 MRR = Pars_policy;
 
@@ -38,7 +37,7 @@ tot_eaFS_vec = TM_matrices(t,:,1); % Read in zero vectors
 tot_eaH_vec  = TM_matrices(t,:,2);
 
 for i = ActiveBanks
-    ea_holdings_mat(i,:,2) = ea_holdings_mat(i,:,1);
+    ea_holdings_mat(i,:,2) = ea_holdings_mat(i,:,1); %
     ea_holdings_mat(i,:,3) = ea_holdings_mat(i,:,2);
     ea_holdings_mat(i,:,4) = ea_holdings_mat(i,:,3);
     
@@ -51,7 +50,7 @@ for i = ActiveBanks
 end
 
 %-------------------------------------------------------------------------
-%% EXTERNAL ASSET SHOCK - FIRST ROUND EFFECTS
+%% 2. EXTERNAL ASSET SHOCK - FIRST ROUND EFFECTS
 %------------------------------------------------------------------------- 
 
 % Select subset of assets to shock - random integer draw
@@ -69,6 +68,8 @@ non_shocked_ea_vec = setdiff(linspace(1,numel(ActiveAssets),numel(ActiveAssets))
 
 % Apply the random shock to the selected subset of assets 
 
+assetprices((4*t)-2,:)       = assetprices((4*t)-3,:);
+
 assetprices((4*t)-2,shocked_ea_vec)     = (eashock_LB+(eashock_UB -eashock_LB).*rand(1,num_shocked_ea)).*assetprices((4*t)-3,shocked_ea_vec);
 assetprices((4*t)-2,non_shocked_ea_vec) = assetprices((4*t)-3,non_shocked_ea_vec);
 
@@ -85,12 +86,14 @@ for i = ActiveBanks
     banks(i).balancesheet.assets.external_asset_holdings((4*t)-2,:) = ea_holdings_mat(i,banks(i).balancesheet.assets.external_asset_ids,2);
     banks(i).balancesheet.assets.external_asset_port((4*t)-2,:)     = ea_port_mat(i,banks(i).balancesheet.assets.external_asset_ids,2);
     
-    banks(i).balancesheet.assets.external_assets(t,tau-1) = sum(banks(i).balancesheet.assets.external_asset_port((4*t)-2,:));
+    banks(i).balancesheet.assets.external_assets(t,tau) = sum(banks(i).balancesheet.assets.external_asset_port((4*t)-2,:));
+    
+    banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau-1);
  
  end
 
 %-------------------------------------------------------------------------
-%% LOAN REPAYMENT AND FIRESALES
+%% 3. LOAN REPAYMENT AND FIRESALES
 %------------------------------------------------------------------------- 
 
 myprint(writeoption,fileID_D,'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\r\n');
@@ -110,12 +113,10 @@ for i = 1:numel(DBV)
 % the current period
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    banks(DBV(i)).firesales.final_firesales(t) = 0;
-    
-    banks(DBV(i)).IBM.L_bil_repaid_loans    = zeros(1,banks(DBV(i)).num_final_cps(t));
+    banks(DBV(i)).IBM.L_bil_repaid_loans    = zeros(1,banks(DBV(i)).numlending_cps(t));
     banks(DBV(i)).IBM.L_tot_repaid_loans(t) = NaN;
     
-    if isempty(banks(DBV(i)).final_cps) % Case for borrowers who did not have lending counterparties in the current period
+    if isempty(banks(DBV(i)).lending_cps) % Case for borrowers who did not have lending counterparties in the current period
         
         banks(DBV(i)).IBM.B_req_bil_loanrepay      = 0;
         banks(DBV(i)).IBM.B_fin_bil_loanrepay      = 0;
@@ -128,7 +129,6 @@ for i = 1:numel(DBV)
         banks(DBV(i)).firesales.fullrepaywithFS(t) = NaN;
         banks(DBV(i)).firesales.act_FS_vec         = zeros(1,banks(DBV(i)).balancesheet.assets.num_external_assets(t));
         banks(DBV(i)).firesales.final_firesales(t) = 0;
-        
         banks(DBV(i)).firesales.tot_des_FS(t)      = 0;
         
         banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,:) = ...
@@ -139,8 +139,6 @@ for i = 1:numel(DBV)
              
         banks(DBV(i)).balancesheet.assets.external_assets(t,tau) = sum(banks(DBV(i)).balancesheet.assets.external_asset_port((4*t)-1,:));
         
-        banks(DBV(i)).balancesheet.assets.cash(t,tau) = banks(DBV(i)).balancesheet.assets.cash(t,tau-1);
-       
         myprint(writeoption,fileID_D,'Borrower %d has no lenders in period %d: no firesales\r\n',DBV(i),t);
         myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
             
@@ -157,14 +155,14 @@ for i = 1:numel(DBV)
         clearvars temp_repaystore
     
         myprint(writeoption,fileID_D,'Borrower %d has total loans of %.3f to repay across %d lenders in period %d\r\n',...
-            DBV(i),banks(DBV(i)).IBM.B_req_tot_loanrepay(t),banks(DBV(i)).num_final_cps(t),t);
+            DBV(i),banks(DBV(i)).IBM.B_req_tot_loanrepay(t),banks(DBV(i)).numlending_cps(t),t);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Scenario in which banks have enough liquidity to repay loan in full: No firesale of external assets needed.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
-        if (banks(DBV(i)).balancesheet.assets.cash(t,tau-1))*(1-MRR) >= banks(DBV(i)).IBM.B_req_tot_loanrepay(t)
+        if (banks(DBV(i)).balancesheet.assets.cash(t,tau))*(1-MRR) >= banks(DBV(i)).IBM.B_req_tot_loanrepay(t)
            
             banks(DBV(i)).IBM.canrepay_NoFS(t) = 1;
             banks(DBV(i)).firesales.fullrepaywithFS(t)  = NaN;
@@ -173,17 +171,17 @@ for i = 1:numel(DBV)
             banks(DBV(i)).IBM.B_fin_tot_loanrepay(t)  = banks(DBV(i)).IBM.B_req_tot_loanrepay(t);
             
             myprint(writeoption,fileID_D,'--> Borrower %d has sufficient reserves (%.3f) to repay loans in period %d\r\n',...
-                DBV(i),(banks(DBV(i)).balancesheet.assets.cash(t,tau-1))*(1-MRR),t);
+                DBV(i),(banks(DBV(i)).balancesheet.assets.cash(t,tau))*(1-MRR),t);
             
             % 1st end of phase update (BORROWERS): Borrowers pay off loans without resorting to firesales 
 
-            banks(DBV(i)).balancesheet.assets.cash(t,tau) = banks(DBV(i)).balancesheet.assets.cash(t,tau-1)...
+            banks(DBV(i)).balancesheet.assets.cash(t,tau) = banks(DBV(i)).balancesheet.assets.cash(t,tau)...
                 - banks(DBV(i)).IBM.B_fin_tot_loanrepay(t);
             
             myprint(writeoption,fileID_D,'--> Updated reserves: %.3f\r\n',banks(DBV(i)).balancesheet.assets.cash(t,tau));
             myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
             
-            borr_rep_mat(DBV(i),banks(DBV(i)).final_cps) = banks(DBV(i)).IBM.B_fin_bil_loanrepay;
+            borr_rep_mat(DBV(i),banks(DBV(i)).lending_cps) = banks(DBV(i)).IBM.B_fin_bil_loanrepay;
                     
             banks(DBV(i)).firesales.act_FS_vec = zeros(1,banks(DBV(i)).balancesheet.assets.num_external_assets(t));
         
@@ -205,29 +203,31 @@ for i = 1:numel(DBV)
 % Sell off assets at prevailing market price (post-shock)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
 
-% Outer loop: Determine whether firesales are required
+% Outer loop: Determine total firesale requirement
 
-        elseif (banks(DBV(i)).balancesheet.assets.cash(t,tau-1))*(1-MRR)  <  banks(DBV(i)).IBM.B_req_tot_loanrepay(t)
+        % Case II: Required repayment higher than available reserves --> Allocate up to maximum allowable and firesale to make up the rest
+
+        elseif (banks(DBV(i)).balancesheet.assets.cash(t,tau))*(1-MRR) < banks(DBV(i)).IBM.B_req_tot_loanrepay(t)
         
             banks(DBV(i)).IBM.canrepay_NoFS(t) = 0;
         
-            banks(DBV(i)).firesales.tot_des_FS(t) =  banks(DBV(i)).IBM.B_req_tot_loanrepay(t)-(banks(DBV(i)).balancesheet.assets.cash(t,tau-1))*(1-MRR);
+            banks(DBV(i)).firesales.tot_des_FS(t) =  banks(DBV(i)).IBM.B_req_tot_loanrepay(t)-(banks(DBV(i)).balancesheet.assets.cash(t,tau))*(1-MRR);
         
             banks(DBV(i)).firesales.des_FS_vec    =  ones(1,banks(DBV(i)).balancesheet.assets.num_external_assets(t))...
-                .*(1./banks(DBV(i)).balancesheet.assets.num_external_assets(t)).*banks(DBV(i)).firesales.tot_des_FS(t);
+                .*(1/banks(DBV(i)).balancesheet.assets.num_external_assets(t)).*banks(DBV(i)).firesales.tot_des_FS(t);
         
             banks(DBV(i)).firesales.act_FS_vec = zeros(1,banks(DBV(i)).balancesheet.assets.num_external_assets(t));
         
             myprint(writeoption,fileID_D,'Borrower %d has insufficient reserves to repay interbank loans (%.3f<%.3f). Has to firesale %.3f of each of its %d external assets\r\n',...
                 DBV(i),...
-                (banks(DBV(i)).balancesheet.assets.cash(t,tau-1))*(1-MRR),...
+                (banks(DBV(i)).balancesheet.assets.cash(t,tau))*(1-MRR),...
                 banks(DBV(i)).IBM.B_req_tot_loanrepay(t),...
                 (1./banks(DBV(i)).balancesheet.assets.num_external_assets(t)).*banks(DBV(i)).firesales.tot_des_FS(t),...
                 banks(DBV(i)).balancesheet.assets.num_external_assets(t));
         
 %-------------------------------------------------FIRESALES-----------------------------------------------------------
 
-% STEP 1: Engage in firesales of individual external assets
+% Engage in firesales of individual external assets
 
 % Inner loop: As banks sell off assets, check that holdings are sufficient. 
 % Loop through each asset and sell off until bilateral repayment requirement is met
@@ -239,9 +239,10 @@ for i = 1:numel(DBV)
                 if  banks(DBV(i)).firesales.des_FS_vec(j)/assetprices((4*t)-1,banks(DBV(i)).balancesheet.assets.external_asset_ids(j))...
                         > banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,j)
                     
-                    disp('Case: Firesales insufficient to repay loan in full!')
+                    %disp('Case: Firesales insufficient to repay loan in full!')
                 
-                    banks(DBV(i)).firesales.act_FS_vec(j) = banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,j);
+                    banks(DBV(i)).firesales.act_FS_vec(j) = banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,j).*...
+                    assetprices((4*t)-1,banks(DBV(i)).balancesheet.assets.external_asset_ids(j));
                 
                     banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,j) = 0;
                     
@@ -261,8 +262,10 @@ for i = 1:numel(DBV)
                
                     banks(DBV(i)).firesales.act_FS_vec(j) = banks(DBV(i)).firesales.des_FS_vec(j);
                     
+                    %./assetprices((4*t)-1,banks(DBV(i)).balancesheet.assets.external_asset_ids(j));
+                    
                     banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,j) = banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,j)-...
-                        banks(DBV(i)).firesales.act_FS_vec(j);  
+                        banks(DBV(i)).firesales.act_FS_vec(j)./assetprices((4*t)-1,banks(DBV(i)).balancesheet.assets.external_asset_ids(j));  
                     
                     banks(DBV(i)).balancesheet.assets.external_asset_port((4*t)-1,j) =...
                         banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,j).*...
@@ -281,57 +284,50 @@ for i = 1:numel(DBV)
             banks(DBV(i)).balancesheet.assets.external_assets(t,tau) = sum(banks(DBV(i)).balancesheet.assets.external_asset_port((4*t)-1,:));
                     
 %---------------------------------------------------------------------------------------------------------------------
-% STEP 2: Determine whether firesales allowed borrowers to satisfy interbank obligations
+% Determine whether firesales allowed borrowers to satisfy interbank obligations
  
         banks(DBV(i)).firesales.final_firesales(t) = sum(banks(DBV(i)).firesales.act_FS_vec);
-        banks(DBV(i)).IBM.B_prov_tot_loanrepay(t) = banks(DBV(i)).firesales.final_firesales(t) + (banks(DBV(i)).balancesheet.assets.cash(t,tau-1))*(1-MRR);
         
-% Insufficient liquidity even with firesales: Repay interbank loans on a pro-rata basis
- 
-            if banks(DBV(i)).IBM.B_prov_tot_loanrepay(t) < banks(DBV(i)).IBM.B_req_tot_loanrepay(t) 
-            
-                banks(DBV(i)).firesales.fullrepaywithFS(t) = 0;
-                banks(DBV(i)).IBM.B_fin_bil_loanrepay    = banks(DBV(i)).IBM.B_prov_tot_loanrepay(t)./banks(DBV(i)).IBM.B_req_tot_loanrepay(t)...
-                .*banks(DBV(i)).IBM.B_req_bil_loanrepay;
-                banks(DBV(i)).IBM.B_fin_tot_loanrepay(t) = sum(banks(DBV(i)).IBM.B_fin_bil_loanrepay);
+        banks(DBV(i)).IBM.B_fin_tot_loanrepay(t)   = (banks(DBV(i)).balancesheet.assets.cash(t,tau))*(1-MRR)+...
+                                                     banks(DBV(i)).firesales.final_firesales(t);
+        
+         if abs(banks(DBV(i)).IBM.B_fin_tot_loanrepay(t) - banks(DBV(i)).IBM.B_req_tot_loanrepay(t)) < tol
              
-                banks(DBV(i)).firesales.fullrepaywithFS(t) = NaN;
+             banks(DBV(i)).firesales.fullrepaywithFS(t)  = 1;
+             
+             banks(DBV(i)).IBM.B_fin_bil_loanrepay  = banks(DBV(i)).IBM.B_req_bil_loanrepay;
+         else
+             
+             banks(DBV(i)).firesales.fullrepaywithFS(t)  = 0;
+             
+             for j=1:banks(DBV(i)).numlending_cps(t)
+             
+                banks(DBV(i)).IBM.B_fin_bil_loanrepay(j) = min(banks(DBV(i)).IBM.B_req_bil_loanrepay(j),...
+                    (banks(DBV(i)).IBM.B_fin_tot_loanrepay(t))/(banks(DLV(i)).numlending_cps(t)));
                 
-% With firesales, borrowers are able to fulfill their interbank obligations
-                
-            elseif banks(DBV(i)).IBM.B_prov_tot_loanrepay(t) >= banks(DBV(i)).IBM.B_req_tot_loanrepay(t) 
-                
-                banks(DBV(i)).IBM.B_fin_bil_loanrepay    = banks(DBV(i)).IBM.B_req_bil_loanrepay;
-                banks(DBV(i)).IBM.B_fin_tot_loanrepay(t) = banks(DBV(i)).IBM.B_req_tot_loanrepay(t);
-                
-                banks(DBV(i)).firesales.fullrepaywithFS(t)  = 1;
-                
-            else
-                disp('Error in borrower repayment with firesales!')
-            end
-              
+             end
+ 
+         end
+        
         myprint(writeoption,fileID_D,'Borrower %d firesales %.3f worth of external assets in period %d to pay back %.3f worth of interbank loans. Repayment/loan ratio is: %.3f percent\r\n',...
         DBV(i),banks(DBV(i)).firesales.final_firesales(t),t,banks(DBV(i)).IBM.B_req_tot_loanrepay(t),...
         (banks(DBV(i)).IBM.B_fin_tot_loanrepay(t)/banks(DBV(i)).IBM.B_req_tot_loanrepay(t))*100);
     
        % 1st end of phase update (BORROWERS): Remaining reserves after loan repayment and firesales 
-        banks(DBV(i)).balancesheet.assets.cash(t,tau) = banks(DBV(i)).balancesheet.assets.cash(t,tau-1)...
-            -  banks(DBV(i)).IBM.B_fin_tot_loanrepay(t) + banks(DBV(i)).firesales.final_firesales(t);
+        banks(DBV(i)).balancesheet.assets.cash(t,tau) = MRR*banks(DBV(i)).balancesheet.assets.cash(t,tau);
         
         myprint(writeoption,fileID_D,'--> Updated reserves: %.3f\r\n',banks(DBV(i)).balancesheet.assets.cash(t,tau));        
         myprint(writeoption,fileID_D,'-----------------------------------------------------------------------------\r\n');  
         end
     end
        
-    borr_rep_mat(DBV(i),banks(DBV(i)).final_cps) = banks(DBV(i)).IBM.B_fin_bil_loanrepay;
+    borr_rep_mat(DBV(i),banks(DBV(i)).lending_cps) = banks(DBV(i)).IBM.B_fin_bil_loanrepay;
     
-    %banks(DBV(i)).IBM.L_bil_repaid_loans(t) = 0;
-    %banks(DBV(i)).IBM.L_tot_repaid_loans(t) = NaN;
     
     banks(DBV(i)).firesales.external_asset_firesales(t,:) = banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,:)-...
         banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,:);
     
-   banks(DBV(i)).firesales.ea_vec(t,banks(DBV(i)).balancesheet.assets.external_asset_ids) = banks(DBV(i)).firesales.external_asset_firesales(t,:);
+    banks(DBV(i)).firesales.ea_vec(t,banks(DBV(i)).balancesheet.assets.external_asset_ids) = banks(DBV(i)).firesales.external_asset_firesales(t,:);
     
 end
 
@@ -376,11 +372,11 @@ tot_eaFS_vec = tot_eaFS_vec_1(keepassets);
 
 % 2. MIF: Exponential function of firesales
 
-market_depth = ones(1,numel(keepassets));
+MD = market_depth(keepassets);
 
 assetprices((4*t),:) = assetprices((4*t)-1,:);
 
-assetprices(4*t,keepassets) = assetprices((4*t)-1,keepassets).*exp(-(market_depth.*tot_eaFS_vec)./tot_eaH_vec);
+assetprices(4*t,keepassets) = assetprices((4*t)-1,keepassets).*exp(-(MD.*tot_eaFS_vec)./tot_eaH_vec);
 
 for i = ActiveBanks
     
@@ -412,7 +408,6 @@ for i = 1:numel(DLV)
     banks(DLV(i)).IBM.B_req_tot_loanrepay(t)  = NaN;
     banks(DLV(i)).IBM.B_req_bil_loanrepay(t)  = NaN;
 
-    banks(DLV(i)).IBM.B_prov_tot_loanrepay(t) = NaN;
     banks(DLV(i)).IBM.B_fin_tot_loanrepay(t)  = NaN;
     banks(DLV(i)).IBM.B_fin_bil_loanrepay(t)  = NaN;
    
@@ -427,7 +422,7 @@ for i = 1:numel(DLV)
     
     % 1st end of phase update (LENDERS): Borrower loan repayment added to reserves
     
-    banks(DLV(i)).balancesheet.assets.cash(t,tau) = banks(DLV(i)).balancesheet.assets.cash(t,tau-1) + ...
+    banks(DLV(i)).balancesheet.assets.cash(t,tau) = banks(DLV(i)).balancesheet.assets.cash(t,tau) + ...
         banks(DLV(i)).IBM.L_tot_repaid_loans(t);
     
     if banks(DLV(i)).numborrowing_cps(t) == 0
@@ -446,7 +441,6 @@ for i = 1:numel(DLV)
     
     
         for j = 1: banks(DLV(i)).numborrowing_cps(t)
-        
             myprint(writeoption,fileID_D,'--> Lender %d and Borrower %d loan/repayment ratio = %.3f percent\r\n',...
                 DLV(i),banks(DLV(i)).borrowing_cps(j),(banks(DLV(i)).IBM.L_bil_repaid_loans(j)./banks(DLV(i)).IBM.L_bil_exp_repay(j))*100);        
         end

@@ -1,6 +1,6 @@
-function [TOT_vec,TOT_sum,dTOT_vec,total_FS_vec,d_AP,d_FS,FailedBanks,ActiveBanks] =...
+function [TOT_vec,TOT_sum,dTOT_vec,asset_FS_vec,d_AP,d_FS,FailedBanks,ActiveBanks] =...
     Periodsummary(banks,ActiveBanks,FailedBanks,n_banks,IBratemat,TOT_vec,TOT_sum,dTOT_vec,...
-    m_assets,assetprices,total_FS_vec,d_AP,d_FS,FailCount,FailedBankID,DBV,DLV,t,fileID_S)
+    m_assets,assetprices,asset_FS_vec,d_AP,d_FS,FailCount,FailedBankID,DBV,DLV,t,fileID_S)
 
 
 %-------------------------------------------------------------------------
@@ -22,7 +22,8 @@ total_loans_vec         = TOT_vec(:,10);
 total_exp_repay_vec     = TOT_vec(:,11);
 total_repayment_vec     = TOT_vec(:,12);
 
-total_des_FS_vec        = TOT_vec(:,13);
+total_des_FS_vec    = TOT_vec(:,13);
+total_act_FS_vec    = TOT_vec(:,14);
 
 total_assets         = TOT_sum(1,:);
 total_cash           = TOT_sum(2,:);
@@ -30,7 +31,6 @@ total_ext_assets     = TOT_sum(3,:);
 
 total_des_investment = TOT_sum(4,:);
 total_investment     = TOT_sum(5,:);
-
 
 total_deposits       = TOT_sum(6,:);
 total_capital        = TOT_sum(7,:);
@@ -42,7 +42,7 @@ total_exp_repay      = TOT_sum(11,:);
 total_repayment      = TOT_sum(12,:);
 
 total_des_FS         = TOT_sum(13,:);
-total_firesales      = TOT_sum(14,:);
+total_act_FS         = TOT_sum(14,:);
 
 d_total_assets       = dTOT_vec(1);
 d_total_cash         = dTOT_vec(2);
@@ -213,30 +213,31 @@ fprintf(fileID_S,'==============================================================
 fprintf(fileID_S,'Firesales');
 fprintf(fileID_S,'==================================================================================\r\n');
 
-for i = ActiveBanks      
-    total_FS_vec(i,:) = banks(i).firesales.ea_vec(t,:); 
+for i = ActiveBanks
+    asset_FS_vec(i,:)    = banks(i).firesales.ea_vec(t,:);
     total_des_FS_vec(i)  = banks(i).firesales.tot_des_FS(t);    
+    total_act_FS_vec(i)  = banks(i).firesales.final_firesales(t); 
 end
 
-asset_firesales      = sum(total_FS_vec);
+asset_firesales   = sum(asset_FS_vec);
 
-total_des_FS(end)    = nansum(total_des_FS_vec);
-total_firesales(end) = nansum(asset_firesales);
+total_des_FS(end) = nansum(total_des_FS_vec);
+total_act_FS(end) = nansum(total_act_FS_vec);
 
-for i=1:m_assets   
-    fprintf(fileID_S,'%.3f of asset %d sold at firesale in period %d\r\n',asset_firesales(i),i,t);    
+for k=1:m_assets   
+    fprintf(fileID_S,'%.3f of asset %d sold at firesale in period %d\r\n',asset_firesales(k),k,t);    
 end
 
 if t>1    
-    d_FS = ((total_firesales(end)-total_firesales(end-1))/total_firesales(end-1))*100;
+    d_FS = ((total_act_FS(end)-total_act_FS(end-1))/total_act_FS(end-1))*100;
 else
     d_FS = 0;
 end   
 
 fprintf(fileID_S,'-----------------------------------------------------------------------------\r\n');     
 
-fprintf(fileID_S,'Desired firesales =  %.3f\r\n',total_firesales(end));
-fprintf(fileID_S,'Final firesales = %.3f\r\n',total_firesales(end));
+fprintf(fileID_S,'Desired firesales =  %.3f\r\n',total_act_FS(end));
+fprintf(fileID_S,'Final firesales = %.3f\r\n',total_act_FS(end));
 
 if t>1
     fprintf(fileID_S,'--> Percent change = %.3f percent over last period\r\n',d_FS);
@@ -275,6 +276,7 @@ TOT_vec(:,11) = total_exp_repay_vec;
 TOT_vec(:,12) = total_repayment_vec;
 
 TOT_vec(:,13) = total_des_FS_vec; 
+TOT_vec(:,14) = total_act_FS_vec; 
 
 TOT_sum(1,end)  = total_assets(end);
 TOT_sum(2,end)  = total_cash(end); 
@@ -293,7 +295,7 @@ TOT_sum(11,end) = total_exp_repay(end);
 TOT_sum(12,end) = total_repayment(end); 
 
 TOT_sum(13,end) = total_des_FS(end);
-TOT_sum(14,end) = total_firesales(end); 
+TOT_sum(14,end) = total_act_FS(end); 
 
 dTOT_vec(1) = d_total_assets;
 dTOT_vec(2) = d_total_cash;
