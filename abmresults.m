@@ -28,14 +28,15 @@ for i = 1:n_banks
     
 % Interbank market
 
-    lender_array =   [linspace(1,length(banks(i).IBM.L_tot_requests),length(banks(i).IBM.L_tot_requests))
+
+    lender_array =   [linspace(1,length(banks(i).IBM.L_tot_requests),length(banks(i).IBM.L_tot_requests));
                                                     banks(i).IBM.L_tot_requests;
                                                     (banks(i).balancesheet.assets.cash(1:banks(i).failtime,2).*(1-MRR))';
                                                     banks(i).IBM.L_prov_tot_loans;
                                                     banks(i).IBM.hoarding;
                                                     banks(i).IBM.L_tot_loans;
                                                     banks(i).IBM.L_tot_exp_repay;
-                                                    banks(i).IBM.L_tot_repaid_loans
+                                                    banks(i).IBM.L_tot_repaid_loans;
                                                     banks(i).balancesheet.assets.cash(1:banks(i).failtime,3)'];
                                                 
    tempL =  lender_array;

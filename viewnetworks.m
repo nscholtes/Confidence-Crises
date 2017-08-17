@@ -25,7 +25,7 @@ graphlayout = networkparameters(3);
 
 for i = 1:numel(Slice)
     % Bank nodes
-    Networkdata_nodes.banks.(Slice{i}).sizes_zero   = (a(:,i)./(max(a(:,1))/markernorm)); % Use largest bank at start of simulation to size nodes
+    Networkdata_nodes.banks.(Slice{i}).sizes_zero   = (a(:,i)./(max(a(:,i))/markernorm)); % Use largest bank at start of simulation to size nodes
     Networkdata_nodes.banks.(Slice{i}).nonzero_ids  = find(Networkdata_nodes.banks.(Slice{i}).sizes_zero~=0);
     Networkdata_nodes.banks.(Slice{i}).sizes_nozero = Networkdata_nodes.banks.(Slice{i}).sizes_zero;
     Networkdata_nodes.banks.(Slice{i}).sizes_nozero(Networkdata_nodes.banks.(Slice{i}).sizes_nozero==0) = [];

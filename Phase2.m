@@ -1,6 +1,6 @@
 function [banks,assetprices,opn_adjmat,NMT_matrices,NNT_matrices,TM_matrices]...
             =Phase2(banks,ActiveBanks,ActiveAssets,opn_adjmat,Pars_pshock_current,Pars_policy,...
-            NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D,writeoption,tol)
+            NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,B_noIB,DLV,t,fileID_D,writeoption,tol)
         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -47,6 +47,7 @@ for i = ActiveBanks
     
     banks(i).firesales.ea_vec(t,ActiveAssets) = zeros(1,numel(ActiveAssets));
     banks(i).balancesheet.assets.eaH_vec(t,ActiveAssets) = zeros(1,numel(ActiveAssets));
+    
 end
 
 %-------------------------------------------------------------------------
@@ -105,6 +106,40 @@ myprint(writeoption,fileID_D,'Step 1: Determine whether firesales are required\r
 myprint(writeoption,fileID_D,'==================================================================================\r\n');
 
 assetprices((4*t)-1,:) = assetprices((4*t)-2,:); % No change in asset prices during firesales
+
+for i = B_noIB
+    
+    banks(i).IBM.B_req_bil_loanrepay      = 0;
+    banks(i).IBM.B_fin_bil_loanrepay      = 0;
+        
+    banks(i).IBM.B_req_tot_loanrepay(t)   = 0; 
+    banks(i).IBM.B_fin_tot_loanrepay(t)   = 0;
+    banks(i).IBM.B_prov_tot_loanrepay(t)  = 0;
+      
+    banks(i).IBM.canrepay_NoFS(t)         = NaN;
+    banks(i).firesales.fullrepaywithFS(t) = NaN;
+    banks(i).firesales.act_FS_vec         = zeros(1,banks(i).balancesheet.assets.num_external_assets(t));
+    banks(i).firesales.final_firesales(t) = 0;
+    banks(i).firesales.tot_des_FS(t)      = 0;
+    
+    banks(i).IBM.L_bil_repaid_loans    = zeros(1,banks(i).numlending_cps(t));
+    banks(i).IBM.L_tot_repaid_loans(t) = NaN;
+    
+    %banks(i).balancesheet.assets.external_assets(t,tau+1) = banks(i).balancesheet.assets.external_assets(t,tau);
+    
+    banks(i).balancesheet.assets.external_asset_holdings((4*t)-1,:) = ...
+            banks(i).balancesheet.assets.external_asset_holdings((4*t)-2,:);
+        
+    banks(i).balancesheet.assets.external_asset_holdings((4*t)-1,:) = ...
+            banks(i).balancesheet.assets.external_asset_holdings((4*t)-2,:);
+                    
+        banks(i).balancesheet.assets.external_asset_port((4*t)-1,:) =...
+            banks(i).balancesheet.assets.external_asset_port((4*t)-2,:);
+                    
+    banks(i).balancesheet.assets.external_asset_port((4*t)-1,:) =...
+        banks(i).balancesheet.assets.external_asset_port((4*t)-2,:);
+          
+end
 
 for i = 1:numel(DBV)
                
@@ -303,7 +338,7 @@ for i = 1:numel(DBV)
              for j=1:banks(DBV(i)).numlending_cps(t)
              
                 banks(DBV(i)).IBM.B_fin_bil_loanrepay(j) = min(banks(DBV(i)).IBM.B_req_bil_loanrepay(j),...
-                    (banks(DBV(i)).IBM.B_fin_tot_loanrepay(t))/(banks(DLV(i)).numlending_cps(t)));
+                    (banks(DBV(i)).IBM.B_fin_tot_loanrepay(t))/(banks(DBV(i)).numlending_cps(t)));
                 
              end
  

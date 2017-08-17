@@ -83,10 +83,13 @@ Pars_opnet = [m_assets,av_div];
 %--------------------------------------------------------------------------
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Model timing
+% Simulation and Model timing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-T = 500;        % Number of iteration steps
+n_sims = 10;        % Number of ABM simulations
+sims   = 1:n_sims;
+
+T    = 1500;        % Number of iteration steps
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Initial balance sheet weights
@@ -109,17 +112,17 @@ theta = 0.5;   % Multiplier for mean-reverting component
 SPF   = 0.025; % Shock proportionality factor
 
 % Portfolio shock
-shocktime   = T/2:(T/2)+10; 
+shocktime   = T/2:(T/2)+30; 
 
 num_shocked_ea_S = m_assets;
 eashock_LB_S     = 0.9;
 eashock_UB_S     = 1.1;
-market_depth_S   = 0.2*ones(1,m_assets); % Market depth of assets used in firesale computation
+market_depth_S   = 0.2*zeros(1,m_assets); % Market depth of assets used in firesale computation
     
 num_shocked_ea_C = m_assets/5;
-eashock_LB_C     = 0.8;
+eashock_LB_C     = 0.75;
 eashock_UB_C     = 1;
-market_depth_C   = 0.8*ones(1,m_assets);
+market_depth_C   = 0.75*ones(1,m_assets);
     
 %Collecting parameters
 Pars_dshock  = [theta SPF];
@@ -189,6 +192,8 @@ TOT_NT_matrices = zeros(n_banks,T,14);            % Collecting balance sheet and
 TOT_T_matrices  = zeros(14,T);
 dTOT_matrices   = zeros(6,T);
 
+fin_TOT_T_matrices = zeros(14,T,n_sims);
+
 total_firesales_vec = zeros(n_banks,m_assets,T);
 d_assetprices       = zeros(2*T,m_assets);
 d_firesales         = zeros(1,T);
@@ -203,6 +208,8 @@ clc
 %-----------------------------------------------------------------------------------------------------------------------------------------------------
 %% Agent-Based Model
 %-----------------------------------------------------------------------------------------------------------------------------------------------------
+%for k = 1
+%fprintf(1,'Current simulation: %d\n',k);
 tic
 for t=1:T
     if t==1
@@ -216,18 +223,18 @@ for t=1:T
         Pars_pshock_current = Pars_pshock(2,:);
     end
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MODEL DYNAMICS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  fprintf(1,'Current period: %d\n',t);
+  fprintf(1,'--> Current period: %d\n',t);
 % Phase 0: Initialisation, Population of the network and carrying over of variables from previous iterations
    [banks,NMT_matrices,assetprices] =...
         Phase0(banks,ActiveBanks,a,Pars_balancesheet,T,t,IBN_adjmat(:,:,x),NMT_matrices,OPN_adjmat(:,:,x),assetprices);
 % Phase 1: Deposit shock, investment decision, interbank market
-   [banks,DBV,DLV,NT_matrices,NNT_matrices] = ...
+   [banks,DBV,B_noIB,DLV,NT_matrices,NNT_matrices] = ...
         Phase1(banks,ActiveBanks,IBN_adjmat(:,:,x),n_banks,beta,Pars_interestrates,Pars_dshock,Pars_policy,...
         NT_matrices,NNT_matrices,t,fileID_D,writeoption,tol);
 % Phase 2: Asset price shock, loan repayment, firesales and second round effects
    [banks,assetprices,OPN_adjmat(:,:,t),NMT_matrices,NNT_matrices,TM_matrices] = ...
         Phase2(banks,ActiveBanks,ActiveAssets,OPN_adjmat(:,:,x),Pars_pshock_current,Pars_policy,...
-        NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D,writeoption,tol);
+        NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,B_noIB,DLV,t,fileID_D,writeoption,tol);
 % Phase 3: Removal of insolvent banks and (possible) central bank intervention
    [banks,NMT_matrices,banksfail,n_banks,IBN_adjmat(:,:,t),OPN_adjmat(:,:,t),FailCount_vec(t),FailedBankID_mat(t,:),ActiveAssets] =  ...
        Phase3(banks,NMT_matrices,banksfail,n_banks,m_assets,Pars_interestrates(1),IBN_adjmat(:,:,x),OPN_adjmat(:,:,x),assetprices(4*t,:),...
@@ -247,7 +254,11 @@ for t=1:T
     [banks] = housekeeping(banks,n_banks);
     clc;
 end
+%[fin_TOT_T_matrices] = simcollect(TOT_T_matrices,fin_TOT_T_matrices,k,n_sims);
+%av_TOT_T_matrices = mean(fin_TOT_T_matrices,3);
 toc
+clc
+%end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% COLLECTING ABM RESULTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
 abmresults = abmresults(banks,n_banks,Pars_policy);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CLEAN UP WORKSPACE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
@@ -277,7 +288,7 @@ networkparameters = [markernorm edgewnorm graphlayout];
     cat(3,ibn_adjmat_init,IBN_adjmat(:,:,timeslices)),NNT_matrices(:,:,[1 timeslices],NNTvisualize),cat(3,opn_adjmat_init,OPN_adjmat(:,:,timeslices)));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% BALANCE SHEET DYNAMICS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 normalizegraph = 'N'; % Y/N to normalize balance sheet variables by total assets
-Results_balancesheet(fig_output,TOT_T_matrices,TOT_NT_matrices,normalizegraph)
+Results_balancesheet(fig_output,TOT_T_matrices,T,normalizegraph)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% INTERBANK MARKET DYNAMICS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Results_IBM(fig_output,TOT_T_matrices,TOT_NT_matrices,NNT_matrices(:,:,:,8),T)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% SECURITIES MARKET DYNAMICS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

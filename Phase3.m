@@ -7,7 +7,6 @@ tau = 4;
 ea_holdings_mat = NMT_matrices(:,:,(4*t),1);
 ea_port_mat     = NMT_matrices(:,:,(4*t),2);
 
-
 for i = ActiveBanks
     
     banks(i).status(t) = '-';
@@ -28,15 +27,13 @@ for i = ActiveBanks
     banks(i).balancesheet.liabilities.total(t,tau) = banks(i).balancesheet.assets.total(t,tau);
     
     if t<5
-        insolvencyrequirement(i) = logical(banks(i).balancesheet.liabilities.capital(t,tau) < 0);
+        insolvencyrequirement(i) =  false;
     else
         insolvencyrequirement(i) = logical(banks(i).balancesheet.liabilities.capital(t,tau)   < 0 &&...
                                     banks(i).balancesheet.liabilities.capital(t-1,tau) < 0 &&...
-                                    banks(i).balancesheet.liabilities.capital(t-2,tau) < 0);
-                                
-                                %&&...
-                                  %  banks(i).balancesheet.liabilities.capital(t-3,tau) < 0 && ...
-                                  %  banks(i).balancesheet.liabilities.capital(t-4,tau));
+                                    banks(i).balancesheet.liabilities.capital(t-2,tau) < 0 &&...
+                                    banks(i).balancesheet.liabilities.capital(t-3,tau) < 0 && ...
+                                    banks(i).balancesheet.liabilities.capital(t-4,tau) < 0);
     end
         
 end

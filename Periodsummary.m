@@ -157,7 +157,7 @@ fprintf(fileID_S,'==============================================================
 
 
 for i = ActiveBanks
-        
+            
     total_requests_vec(i)  = banks(i).IBM.L_tot_requests(t);
     total_hoarding_vec(i)  = banks(i).IBM.hoarding(t);
     total_loans_vec(i)     = banks(i).IBM.L_tot_loans(t);
