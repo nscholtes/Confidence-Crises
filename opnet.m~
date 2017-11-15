@@ -1,4 +1,4 @@
-function [opn_adjmat] = opnet(n_banks,Pars_opnet,T,fig_output)
+function [opn_adjmat] = opnet(n_banks, m_assets, av_div,T,fig_output)
 
 fig_output_Gephi = strcat(fig_output,'Network/Gephi/');
 
@@ -6,8 +6,8 @@ fig_output_Gephi = strcat(fig_output,'Network/Gephi/');
 %% Simulation of the overlapping portfolio network
 %---------------------------------------------------
 
-m_assets = Pars_opnet(1);
-av_div   = Pars_opnet(2);
+ m_assets = Parz
+ av_div
 
 opn_adjmat    = zeros(n_banks,m_assets);
 op_weightmat = zeros(n_banks,m_assets,T);

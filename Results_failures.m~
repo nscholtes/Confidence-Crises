@@ -47,6 +47,8 @@ print(gcf,'-dpdf',strcat(fig_output_F,'failures.pdf'));
 
 % Graphing changing network structure due to ABM
 
+density  = 2*numedges./(numnodes.*(numnodes-ones(1,T)));
+avdegree = 2*numedges./numnodes;
 
 %%%   
 figure

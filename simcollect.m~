@@ -1,4 +1,5 @@
-function[Results,assetprices,FailCount,cum_Fails,capitalshortfall,numnodes,numedges,density,avdegree,mu_A,mu_B] = ...
+function[Results,assetprices,FailCount,capitalshortfall,numnodes,numedges,density_av,density_min,density_max,...
+    avdegree_av,avdegree_min,avdegree_max,mu_A_av,mu_A_min,mu_A_max,mu_B_av,mu_B_min,mu_B_max] = ...
     simcollect(abmresults_allsims,abmresults_label,n_sims,sim_Results_agg,sim_Results_av,sim_Results_min,sim_Results_max,...
     assetprices,FailCount,numnodes,numedges,density,avdegree,mu_A,mu_B)
 
@@ -20,9 +21,9 @@ FailCount(2,:) = min(FailCount);
 FailCount(3,:) = max(FailCount);
 
 % Cumulative vector of failed banks after averaging across runs
-cum_Fails(1,:) = cumsum(FailCount_av);
-cum_Fails(2,:) = cumsum(FailCount_min);
-cum_Fails(3,:) = cumsum(FailCount_max);
+cum_Fails_av  = cumsum(FailCount_av);
+cum_Fails_min = cumsum(FailCount_min);
+cum_Fails_max = cumsum(FailCount_max);
 
 % Identity of failed banks varies across ABM runs: Compute total capital loss due to failures in each run
 for k = 1:n_sims
@@ -57,15 +58,10 @@ density(2,:)  = min(density);
 density(3,:)  = max(density);
 
 avdegree(1,:) = mean(avdegree);
-avdegree(2,:) = min(avdegree);
-avdegree(3,:) = max(avdegree);   
+avdegree_min = min(avdegree);
+avdegree_max = max(avdegree);   
 
-mu_A(1,:) = mean(mu_A);
-mu_A(2,:) = min(mu_A);
-mu_A(3,:) = max(mu_A);
-
-mu_B(1,:) = mean(mu_B);
-mu_B(2,:) = min(mu_B);
-mu_B(3,:) = max(mu_B);
+mu_A_av  = mean(mu_A); mu_A_min = min(mu_A); mu_A_max = max(mu_A);
+mu_B_av  = mean(mu_B); mu_B_min = min(mu_B); mu_B_max = max(mu_B);
 
 end

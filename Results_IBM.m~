@@ -1,4 +1,4 @@
-function Results_IBM(fig_output,Results_agg,Results_av,Results_min,Results_max,IBratemat,T,T_sim,results_IBM_format,allsimlabels)
+function Results_IBM(fig_output,Results_agg,Results_av,Results_min,Results_max,IBratemat,T,T_sim,results_IBM_format)
 
 fig_output_IBM = strcat(fig_output,'Results/');
 %tol = 1.e-6;
@@ -56,7 +56,7 @@ set(gcf,'renderer','painters');
 set(gcf,'Units','Inches');
 pos = get(gcf,'Position');
 set(gcf,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-print(gcf,'-dpdf',strcat(fig_output_IBM,'IBM_phase1',formatlabel,allsimlabels,'.pdf'));
+print(gcf,'-dpdf',strcat(fig_output_IBM,'IBM_phase1',formatlabel,'.pdf'));
 
 %%% Phase 2
 
@@ -76,19 +76,18 @@ subplot(1,2,1) % Expected interbank loan repayment vs. Actual repayment
     grid on;
     legend({'Requests','Loans'},'Location','best','FontSize',8)
 subplot(1,2,2) % Hoarding by lenders
-    title('Expected - Actual repayment')
+    title('Lender hoarding')
     if strcmp(results_IBM_format,'agg')
-        plot(Results_plot(11,:)-Results_plot(12,:),'Color','b','LineWidth',1.1) % Total Loan requests
+        plot(Results_plot(9,:),'Color','b','LineWidth',1.1) % Total Loan requests
     elseif strcmp(results_IBM_format,'av')
-        %plot(Results_plot(9,:),'Color','b','LineWidth',1.1) % Total Loan requests
-        boundedline(1:T_sim,Results_plot(11,:)-Results_plot(12,:),...
-            [Results_plot_LB(11,:)-Results_plot_LB(12,:);Results_plot_UB(11,:)-Results_plot_UB(12,:)]','alpha');
+        plot(Results_plot(9,:),'Color','b','LineWidth',1.1) % Total Loan requests
+        %boundedline(1:T_sim,Results_plot(9,:),[Results_plot_LB(9,:);Results_plot_UB(9,:)]','alpha');
     end
 set(gcf,'renderer','painters');
 set(gcf,'Units','Inches');
 pos = get(gcf,'Position');
 set(gcf,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-print(gcf,'-dpdf',strcat(fig_output_IBM,'IBM_phase2',formatlabel,allsimlabels,'.pdf'));
+print(gcf,'-dpdf',strcat(fig_output_IBM,'IBM_phase2.pdf'));
 % 
 % % Rates
 % 

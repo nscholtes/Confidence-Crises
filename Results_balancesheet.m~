@@ -1,4 +1,4 @@
-function Results_balancesheet(fig_output,Results_agg,Results_av,Results_min,Results_max,T,T_sim,normalizegraph,results_BS_format,allsimlabels)
+function Results_balancesheet(fig_output,Results_agg,Results_av,Results_min,Results_max,T,T_sim,normalizegraph,results_BS_format)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Balance sheet %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -43,7 +43,7 @@ set(gcf,'renderer','painters');
 set(gcf,'Units','Inches');
 pos = get(gcf,'Position');
 set(gcf,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-print(gcf,'-dpdf',strcat(fig_output_BS,'totalassets',formatlabel,allsimlabels,'.pdf'));
+print(gcf,'-dpdf',strcat(fig_output_BS,'totalassets',formatlabel,'.pdf'));
 
 % Evolution of balance sheet componenents
 title_vec = {'Cash','External assets','Deposits','Capital'};
@@ -67,7 +67,7 @@ set(gcf,'renderer','painters');
 set(gcf,'Units','Inches');
 pos = get(gcf,'Position');
 set(gcf,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-print(gcf,'-dpdf',strcat(fig_output_BS,normlabel,'balancesheet',formatlabel,allsimlabels,'.pdf'));
+print(gcf,'-dpdf',strcat(fig_output_BS,normlabel,'balancesheet',formatlabel,'.pdf'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Investment %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -82,6 +82,7 @@ set(gcf,'renderer','painters');
 set(gcf,'Units','Inches');
 pos = get(gcf,'Position');
 set(gcf,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-print(gcf,'-dpdf',strcat(fig_output_BS,normlabel,'investment',formatlabel,allsimlabels,'.pdf'));
+print(gcf,'-dpdf',strcat(fig_output_BS,normlabel,'investment.pdf'));
+
 
 end

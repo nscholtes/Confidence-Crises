@@ -13,8 +13,8 @@ while x(i)<=0;
    i=i+1; 
 end
 str = num2str((length(x)-i)/length(x)*100);
-stuff='Percentage of input vec binned ';
-disp([stuff str])
+%stuff='Percentage of input vec binned ';
+%disp([stuff str])
 
 FPT=x(i:length(x));
 LFPT=log(FPT);

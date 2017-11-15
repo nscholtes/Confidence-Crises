@@ -72,6 +72,8 @@ for i = 1:n_banks
         abmresults(i).interbankmarket.borroweractivity.Properties.RowNames      = BA_variables;
         abmresults(i).interbankmarket.borroweractivity.Properties.VariableNames = strcat('t',strtrim(cellstr(num2str(borrower_array(1,:)'))'));
    end
+   
+   abmresults(i).failtime = banks(i).failtime;
  
 end
 end

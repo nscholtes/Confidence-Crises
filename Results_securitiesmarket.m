@@ -1,4 +1,4 @@
-function Results_securitiesmarket(fig_output,TOT_T_matrices,TM_matrices,total_firesales_vec,assetprices,T)
+function Results_securitiesmarket(fig_output,TOT_T_matrices,assetprices,T,allsimlabels)
 
 fig_output_SM = strcat(fig_output,'Results/');
 

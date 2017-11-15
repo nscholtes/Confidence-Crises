@@ -1,4 +1,4 @@
-function [a,ibn_adjmat] = netgen(Pars_netgen,fileID_IBN,fig_output)
+function [a,ibn_adjmat] = netgen(n_banks,gamma,a_min,a_max,fileID_IBN,fig_output)
 
 %--------------------------------------------------------------------------
 
@@ -18,17 +18,10 @@ fig_output_Gephi = strcat(fig_output_IBN,'Gephi/');
 
 %--------------------------------------------------------------------------
 
-d       = Pars_netgen(1);
-a_min   = Pars_netgen(2);
-a_max   = Pars_netgen(3);
-gamma   = Pars_netgen(4);
-n_banks = Pars_netgen(5);
-
 %-------------------------------------------------------------------------
 %% Drawing node fitness distribution from a truncated power law
 %-------------------------------------------------------------------------
 
-% Obtaining parameter values
 % Monte Carlo simulation with $n_draws$ draws from the distribution using
 % the inverse transform sampling method
 
@@ -57,6 +50,17 @@ adjacency_matrix = zeros(n_banks,n_banks,n_replicates);
 [a,a_freq] = lnbin(all_draws,n_banks);
 a = sort(a,'descend');
 a_max = max(a);
+
+figure
+hist(a);
+title('Empirical distribution of node fitness values')
+xlabel('a')
+ylabel('f(a)')
+set(gcf,'renderer','painters');
+set(gcf,'Units','Inches');
+pos = get(gcf,'Position');
+set(gcf,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
+print(gcf,'-dpdf',strcat(fig_output_IBN,'sizedist.pdf'));
 
 %-------------------------------------------------------------------------
 %% Populating the adjacency matrix

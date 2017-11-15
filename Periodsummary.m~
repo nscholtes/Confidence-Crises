@@ -1,6 +1,5 @@
-function [Results_banks,Results_agg,Results_av,Results_min,Results_max,Results_dAgg,asset_FS_vec,d_AP,d_FS,num_edges,mu_A,mu_B] =...
-    Periodsummary(banks,ActiveBanks,num_ActiveBanks,num_ActiveAssets,n_banks,IBratemat,...
-    Results_banks,Results_agg,Results_av,Results_min,Results_max,Results_dAgg,...
+function [Results_banks,Results_agg,Results_av,Results_min,Results_max,Results_dAgg,asset_FS_vec,d_AP,d_FS,FailedBanks,ActiveBanks,num_edges] =...
+    Periodsummary(banks,ActiveBanks,FailedBanks,n_banks,IBratemat,Results_banks,Results_agg,Results_av,Results_min,Results_max,Results_dAgg,...
     m_assets,assetprices,asset_FS_vec,d_AP,d_FS,ibn_adjmat,opn_adjmat,FailCount,FailedBankID,DBV,DLV,t,fileID_S)
 
 
@@ -381,6 +380,9 @@ failedbanks = sprintf(' %.3g ',find(FailedBankID));
 fprintf(fileID_S,'%d banks failed in period %d\r\n', FailCount,t);
 fprintf(fileID_S,'--> Failed banks IDs: [%s]\r\n',failedbanks);
 
+FailedBanks = unique([FailedBanks find(FailedBankID)]);
+ActiveBanks = setdiff(ActiveBanks,FailedBanks);
+
 %-------------------------------------------------------------------------
 %% NETWORK MEASURES
 %-------------------------------------------------------------------------
@@ -397,12 +399,16 @@ num_edges = sum(sum(ibn_adjmat));
 
 % mu_A = Average degree of ASSETS
 mu_A_vec = sum(opn_adjmat); 
-mu_A     = sum(mu_A_vec)/num_ActiveAssets;
+mu_A     = mean(mu_A_vec);
     
+M = nnz(mu_A_vec);
+
 % mu_B = Average diversification of BANKS
-mu_B_vec = sum(opn_adjmat,2);
-mu_B     = sum(mu_B_vec)/num_ActiveBanks;
+mu_B_vec = sum(opn_adjmat); 
+mu_B     = mean(mu_B_vec);
     
+    N(t) = nnz(mu_B_vec);
+
 %-------------------------------------------------------------------------
 %% Collecting output
 %-------------------------------------------------------------------------
