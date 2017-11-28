@@ -1,6 +1,6 @@
 function [banks,assetprices,opn_adjmat,NMT_matrices,NNT_matrices,TM_matrices]...
-            =Phase2(banks,ActiveBanks,ActiveAssets,opn_adjmat,Pars_pshock_current,Pars_policy,...
-            NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,B_noIB,DLV,t,fileID_D,writeoption,tol)
+            =Phase2(banks,n_banks,ActiveBanks,ActiveAssets,opn_adjmat,Pars_pshock_current,MRR,...
+            NMT_matrices,NNT_matrices,TM_matrices,assetprices,DBV,DLV,t,fileID_D,writeoption,tol)
         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -20,8 +20,6 @@ num_shocked_ea = Pars_pshock_current(1);
 eashock_LB     = Pars_pshock_current(2);
 eashock_UB     = Pars_pshock_current(3);
 market_depth   = Pars_pshock_current(4:end);
-
-MRR = Pars_policy;
 
 % Import interbank matrices from the current period
 
@@ -107,39 +105,39 @@ myprint(writeoption,fileID_D,'==================================================
 
 assetprices((4*t)-1,:) = assetprices((4*t)-2,:); % No change in asset prices during firesales
 
-for i = B_noIB
-    
-    banks(i).IBM.B_req_bil_loanrepay      = 0;
-    banks(i).IBM.B_fin_bil_loanrepay      = 0;
-        
-    banks(i).IBM.B_req_tot_loanrepay(t)   = 0; 
-    banks(i).IBM.B_fin_tot_loanrepay(t)   = 0;
-    banks(i).IBM.B_prov_tot_loanrepay(t)  = 0;
-      
-    banks(i).IBM.canrepay_NoFS(t)         = NaN;
-    banks(i).firesales.fullrepaywithFS(t) = NaN;
-    banks(i).firesales.act_FS_vec         = zeros(1,banks(i).balancesheet.assets.num_external_assets(t));
-    banks(i).firesales.final_firesales(t) = 0;
-    banks(i).firesales.tot_des_FS(t)      = 0;
-    
-    banks(i).IBM.L_bil_repaid_loans    = zeros(1,banks(i).numlending_cps(t));
-    banks(i).IBM.L_tot_repaid_loans(t) = NaN;
-    
-    %banks(i).balancesheet.assets.external_assets(t,tau+1) = banks(i).balancesheet.assets.external_assets(t,tau);
-    
-    banks(i).balancesheet.assets.external_asset_holdings((4*t)-1,:) = ...
-            banks(i).balancesheet.assets.external_asset_holdings((4*t)-2,:);
-        
-    banks(i).balancesheet.assets.external_asset_holdings((4*t)-1,:) = ...
-            banks(i).balancesheet.assets.external_asset_holdings((4*t)-2,:);
-                    
-        banks(i).balancesheet.assets.external_asset_port((4*t)-1,:) =...
-            banks(i).balancesheet.assets.external_asset_port((4*t)-2,:);
-                    
-    banks(i).balancesheet.assets.external_asset_port((4*t)-1,:) =...
-        banks(i).balancesheet.assets.external_asset_port((4*t)-2,:);
-          
-end
+% for i = B_noIB
+%     
+%     banks(i).IBM.B_req_bil_loanrepay      = 0;
+%     banks(i).IBM.B_fin_bil_loanrepay      = 0;
+%         
+%     banks(i).IBM.B_req_tot_loanrepay(t)   = 0; 
+%     banks(i).IBM.B_fin_tot_loanrepay(t)   = 0;
+%     banks(i).IBM.B_prov_tot_loanrepay(t)  = 0;
+%       
+%     banks(i).IBM.canrepay_NoFS(t)         = NaN;
+%     banks(i).firesales.fullrepaywithFS(t) = NaN;
+%     banks(i).firesales.act_FS_vec         = zeros(1,banks(i).balancesheet.assets.num_external_assets(t));
+%     banks(i).firesales.final_firesales(t) = 0;
+%     banks(i).firesales.tot_des_FS(t)      = 0;
+%     
+%     banks(i).IBM.L_bil_repaid_loans    = zeros(1,banks(i).numlending_cps(t));
+%     banks(i).IBM.L_tot_repaid_loans(t) = NaN;
+%     
+%     %banks(i).balancesheet.assets.external_assets(t,tau+1) = banks(i).balancesheet.assets.external_assets(t,tau);
+%     
+%     banks(i).balancesheet.assets.external_asset_holdings((4*t)-1,:) = ...
+%             banks(i).balancesheet.assets.external_asset_holdings((4*t)-2,:);
+%         
+%     banks(i).balancesheet.assets.external_asset_holdings((4*t)-1,:) = ...
+%             banks(i).balancesheet.assets.external_asset_holdings((4*t)-2,:);
+%                     
+%         banks(i).balancesheet.assets.external_asset_port((4*t)-1,:) =...
+%             banks(i).balancesheet.assets.external_asset_port((4*t)-2,:);
+%                     
+%     banks(i).balancesheet.assets.external_asset_port((4*t)-1,:) =...
+%         banks(i).balancesheet.assets.external_asset_port((4*t)-2,:);
+%           
+% end
 
 for i = 1:numel(DBV)
                
@@ -165,6 +163,8 @@ for i = 1:numel(DBV)
         banks(DBV(i)).firesales.act_FS_vec         = zeros(1,banks(DBV(i)).balancesheet.assets.num_external_assets(t));
         banks(DBV(i)).firesales.final_firesales(t) = 0;
         banks(DBV(i)).firesales.tot_des_FS(t)      = 0;
+        
+        borr_rep_mat(DBV(i),:) =  zeros(1,n_banks);
         
         banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,:) = ...
             banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,:);
@@ -352,12 +352,17 @@ for i = 1:numel(DBV)
         banks(DBV(i)).balancesheet.assets.cash(t,tau) = MRR*banks(DBV(i)).balancesheet.assets.cash(t,tau);
         
         myprint(writeoption,fileID_D,'--> Updated reserves: %.3f\r\n',banks(DBV(i)).balancesheet.assets.cash(t,tau));        
-        myprint(writeoption,fileID_D,'-----------------------------------------------------------------------------\r\n');  
+        myprint(writeoption,fileID_D,'-----------------------------------------------------------------------------\r\n');
+        else
+            disp('error in repayment using firesales')
         end
+        
+        %DBV(i)
+        %banks(DBV(i)).lending_cps
+        %banks(DBV(i)).IBM.B_fin_bil_loanrepay
+        
+        borr_rep_mat(DBV(i),banks(DBV(i)).lending_cps) = banks(DBV(i)).IBM.B_fin_bil_loanrepay;
     end
-       
-    borr_rep_mat(DBV(i),banks(DBV(i)).lending_cps) = banks(DBV(i)).IBM.B_fin_bil_loanrepay;
-    
     
     banks(DBV(i)).firesales.external_asset_firesales(t,:) = banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,:)-...
         banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,:);

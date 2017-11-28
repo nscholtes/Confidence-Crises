@@ -1,9 +1,107 @@
 function [banks,NMT_matrices,banksfail,n_banks,ibn_adjmat,opn_adjmat,...
-    FailCount,FailedBankID,FailedBanks,ActiveBanks,num_ActiveBanks,num_FailedBanks,ActiveAssets,num_ActiveAssets,num_InactiveAssets] = ...
-    Phase3(banks,NMT_matrices,banksfail,n_banks,m_assets,r_z,ibn_adjmat,opn_adjmat,AP,...
-    FailCount,FailedBankID,FailedBanks,ActiveBanks,ActiveAssets,t,T)
+    FailCount,FailedBankID,FailedBanks,ActiveBanks,num_ActiveBanks,num_FailedBanks,...
+    ActiveAssets,num_ActiveAssets,num_InactiveAssets,CB_totalallotment] = ...
+    Phase3(banks,DBV,DLV,NMT_matrices,banksfail,n_banks,m_assets,r_z,ibn_adjmat,opn_adjmat,AP,...
+    FailCount,FailedBankID,FailedBanks,ActiveBanks,ActiveAssets,CBintervention,FRFA,CB_totalallotment,t,T,tol)
 
 tau = 4;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Policy intervention by central bank
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Compute remaining liquidity requirement after loans for borrowers and after deposit shock reallocation for lenders
+
+for i = ActiveBanks
+    banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau-1);
+end
+
+%------------------------------------------------
+% Borrowers
+%------------------------------------------------
+
+if strcmp(CBintervention,'on') 
+    
+    B_needliqcount = 0;
+    
+    for i = 1:numel(DBV)
+        loangap(i) =  banks(DBV(i)).IBM.B_tot_requests(t) - banks(DBV(i)).IBM.B_tot_loans(t);
+    
+        if loangap(i) > tol
+            B_needliqcount    = B_needliqcount+1;
+            B_liqrec(B_needliqcount) = DBV(i);
+        end
+    end
+
+    if B_needliqcount > 0
+        B_CB_totalallotment = sum(loangap);
+
+        if strcmp(FRFA,'off')  
+            B_CB_indallotment = B_CB_totalallotment/B_needliqcount;
+    
+            for i = B_liqrec    
+                banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau-1)+...
+                    B_CB_indallotment;          
+            end
+   
+        elseif strcmp(FRFA,'on')
+            for i = 1:numel(DBV)
+                banks(DBV(i)).balancesheet.assets.cash(t,tau) = banks(DBV(i)).balancesheet.assets.cash(t,tau-1) +...
+                    loangap(i);
+            end               
+        end
+    else
+        B_CB_totalallotment = 0;
+    end
+
+%------------------------------------------------
+% Lenders
+%------------------------------------------------
+
+    L_needliqcount = 0;
+
+    for i = 1:numel(DLV)
+        repaymentgap(i) =  banks(DLV(i)).IBM.L_tot_exp_repay(t) - banks(DLV(i)).IBM.L_tot_repaid_loans(t);
+    
+        if repaymentgap(i) > tol
+            L_needliqcount    = L_needliqcount+1;
+            L_liqrec(L_needliqcount) = DLV(i);
+        end
+    end
+
+    if L_needliqcount > 0
+        L_CB_totalallotment = sum(repaymentgap);
+
+        if strcmp(FRFA,'off')  
+            L_CB_indallotment = L_CB_totalallotment/L_needliqcount;
+    
+            for i = L_liqrec    
+                banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau-1)+...
+                    L_CB_indallotment;          
+            end
+   
+        elseif strcmp(FRFA,'on')
+            for i = 1:numel(DLV)
+                banks(DLV(i)).balancesheet.assets.cash(t,tau) = banks(DLV(i)).balancesheet.assets.cash(t,tau-1) +...
+                    repaymentgap(i);
+            end               
+        end
+    else
+        L_CB_totalallotment = 0;
+    end
+elseif strcmp(CBintervention,'off')
+    B_CB_totalallotment = 0;
+    L_CB_totalallotment = 0;
+end
+
+CB_totalallotment(1) = B_CB_totalallotment;
+CB_totalallotment(2) = L_CB_totalallotment;
+
+% Sum over individual values to get total allotment by central bank
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Update asset portfolios
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ea_holdings_mat = NMT_matrices(:,:,(4*t),1);
 ea_port_mat     = NMT_matrices(:,:,(4*t),2);
@@ -14,7 +112,7 @@ for i = ActiveBanks
     banks(i).failtime  = 0;
     
     % Assets after end-of-period returns paid on investment
-    banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau-1) +...
+    banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau) +...
             (r_z).*banks(i).balancesheet.assets.investment(t);
         
     banks(i).balancesheet.assets.total(t,tau) = banks(i).balancesheet.assets.cash(t,tau)+...
@@ -94,15 +192,16 @@ for i = ActiveBanks
         
         continue       
     end  
-    % Assets after end-of-period returns paid on investment
-        banks(i).balancesheet.assets.total(t,tau) = banks(i).balancesheet.assets.cash(t,tau)+...
-        banks(i).balancesheet.assets.external_assets(t,tau);
     
-    % Liabilities
-    banks(i).balancesheet.liabilities.capital(t,tau) = banks(i).balancesheet.assets.total(t,tau)-...
-        banks(i).balancesheet.liabilities.deposits(t,tau-2);
-    
-    banks(i).balancesheet.liabilities.total(t,tau) = banks(i).balancesheet.assets.total(t,tau);
+%     % Assets after end-of-period returns paid on investment
+%         banks(i).balancesheet.assets.total(t,tau) = banks(i).balancesheet.assets.cash(t,tau)+...
+%         banks(i).balancesheet.assets.external_assets(t,tau);
+%     
+%     % Liabilities
+%     banks(i).balancesheet.liabilities.capital(t,tau) = banks(i).balancesheet.assets.total(t,tau)-...
+%         banks(i).balancesheet.liabilities.deposits(t,tau-2);
+%     
+%     banks(i).balancesheet.liabilities.total(t,tau) = banks(i).balancesheet.assets.total(t,tau);
 end
 
 % Identify assets that are no longer active (no holdings by any active banks)
@@ -118,6 +217,21 @@ ActiveBanks = setdiff(ActiveBanks,FailedBanks);
 
 num_ActiveBanks = numel(ActiveBanks);
 num_FailedBanks = numel(FailedBanks);
+
+%%
+
+for i = ActiveBanks
+
+    % Assets after central bank intervention
+        banks(i).balancesheet.assets.total(t,tau) = banks(i).balancesheet.assets.cash(t,tau)+...
+        banks(i).balancesheet.assets.external_assets(t,tau);
+    
+    % Liabilities
+    banks(i).balancesheet.liabilities.capital(t,tau) = banks(i).balancesheet.assets.total(t,tau)-...
+        banks(i).balancesheet.liabilities.deposits(t,tau-2);
+    
+    banks(i).balancesheet.liabilities.total(t,tau) = banks(i).balancesheet.assets.total(t,tau);
+end
 
 NMT_matrices(:,:,(4*t),1) = ea_holdings_mat(:,:);
 NMT_matrices(:,:,(4*t),2) = ea_port_mat(:,:);

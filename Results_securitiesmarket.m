@@ -1,6 +1,6 @@
 function Results_securitiesmarket(fig_output,TOT_T_matrices,assetprices,T,allsimlabels)
 
-fig_output_SM = strcat(fig_output,'Results/');
+fig_output_SM = strcat(fig_output,'Results/securitiesmarket/');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Asset prices %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -62,6 +62,7 @@ subplot(1,2,1)
     legend({'Desired firesales','Final firesales'},'Location','best','FontSize',8)
 subplot(1,2,2)
     plot(TOT_T_matrices(13,:)-TOT_T_matrices(14,:),'Color','k','LineWidth',1.1);
+    grid on;
     title('(b)','Interpreter','latex')
     xlabel('Iteration step','Interpreter','latex')
 set(gcf,'renderer','painters');

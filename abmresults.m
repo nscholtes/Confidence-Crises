@@ -1,8 +1,8 @@
 function[abmresults] = abmresults(banks,n_banks,MRR)
 
-LA_variables  = {'Total requests';'Available reserves';'Provisional loans';...
+LA_variables  = {'Number of borrowers';'Total requests';'Available reserves';'Provisional loans';...
     'Hoarding';'Total loans';'Expected repayment';'Final repayment';'Reserves after repayment'};
-BA_variables  = {'Total requests';'Total loans';'Required repayment';'Available reserves';...
+BA_variables  = {'Number of lenders';'Total requests';'Total loans';'Required repayment';'Available reserves';...
     'Desired firesales';'Final firesales';'Final repayment';'Reserves after repayment'};
 BS_variables  = {'Cash';'External assets';'Deposits';'Capital'};
 Inv_variables = {'Desired investment';'Final investment'};
@@ -30,6 +30,7 @@ for i = 1:n_banks
 
 
     lender_array =   [linspace(1,length(banks(i).IBM.L_tot_requests),length(banks(i).IBM.L_tot_requests));
+                                                    banks(i).IBM.NB;
                                                     banks(i).IBM.L_tot_requests;
                                                     (banks(i).balancesheet.assets.cash(1:banks(i).failtime,2).*(1-MRR))';
                                                     banks(i).IBM.L_prov_tot_loans;
@@ -52,6 +53,7 @@ for i = 1:n_banks
    end
                                               
    borrower_array = [linspace(1,length(banks(i).IBM.B_tot_requests),length(banks(i).IBM.B_tot_requests))
+                                                    banks(i).IBM.NL;
                                                     banks(i).IBM.B_tot_requests;
                                                     banks(i).IBM.B_tot_loans;
                                                     banks(i).IBM.B_req_tot_loanrepay;

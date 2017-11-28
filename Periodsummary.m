@@ -65,6 +65,8 @@ av_repayment     = Results_av(12,:);
 av_des_FS        = Results_av(13,:);
 av_act_FS        = Results_av(14,:);
 
+av_IBrate        = Results_av(15,:);
+
 % Min over banks
 min_assets         = Results_min(1,:);
 min_cash           = Results_min(2,:);
@@ -85,6 +87,9 @@ min_repayment      = Results_min(12,:);
 min_des_FS         = Results_min(13,:);
 min_act_FS         = Results_min(14,:);
 
+min_IBrate        = Results_min(15,:);
+
+
 % Max over banks
 max_assets         = Results_max(1,:);
 max_cash           = Results_max(2,:);
@@ -104,6 +109,8 @@ max_repayment      = Results_max(12,:);
 
 max_des_FS         = Results_max(13,:);
 max_act_FS         = Results_max(14,:);
+
+max_IBrate         = Results_max(15,:);
 
 % Change in aggregate variables
 d_total_assets       = Results_dAgg(1);
@@ -261,6 +268,8 @@ for i = ActiveBanks
        
 end
 
+IBrate_vec = nonzeros(IBratemat);
+
 % Summing over banks
 total_requests(end)  = nansum(total_requests_vec);
 total_hoarding(end)  = nansum(total_hoarding_vec);
@@ -275,12 +284,22 @@ av_loans(end)     = nanmean(total_loans_vec);
 av_exp_repay(end) = nanmean(total_exp_repay_vec);
 av_repayment(end) = nanmean(total_repayment_vec);
 
+av_IBrate(end)  = mean(IBrate_vec);
+
 % Min across banks
 min_requests(end)  = min(total_requests_vec);
 min_hoarding(end)  = min(total_hoarding_vec);
 min_loans(end)     = min(total_loans_vec);
 min_exp_repay(end) = min(total_exp_repay_vec);
 min_repayment(end) = min(total_repayment_vec);
+
+temp_min_IBrate = min(IBrate_vec);
+
+if isempty(temp_min_IBrate)
+    min_IBrate(end) = NaN;
+else
+    min_IBrate(end) = temp_min_IBrate;
+end
 
 % Max across banks
 max_requests(end)  = max(total_requests_vec);
@@ -289,6 +308,13 @@ max_loans(end)     = max(total_loans_vec);
 max_exp_repay(end) = max(total_exp_repay_vec);
 max_repayment(end) = max(total_repayment_vec);
 
+temp_max_IBrate = max(IBrate_vec);
+
+if isempty(temp_max_IBrate)
+    max_IBrate(end) = NaN;
+else
+    max_IBrate(end) = temp_max_IBrate;
+end
 
 fprintf(fileID_S,'Total interbank loan requests over %d borrowers = %.3f in period %d\r\n',numel(DBV),total_requests(end),t);
 fprintf(fileID_S,'Total interbank loans (%.3f) + interest over %d lenders = %.3f\r\n',total_loans(end),numel(DLV),total_exp_repay(end));
@@ -301,11 +327,11 @@ fprintf(fileID_S,'==============================================================
 fprintf(fileID_S,'Rates\r\n');
 fprintf(fileID_S,'==================================================================================\r\n');
 
-IBratevec_temp = reshape(IBratemat,[1,n_banks^2]);
-IBratevec = IBratevec_temp(IBratevec_temp~=0);
+%IBratevec_temp = reshape(IBratemat,[1,n_banks^2]);
+%IBratevec = IBratevec_temp(IBratevec_temp~=0);
 
-fprintf(fileID_S,'The average interbank rate was %.2f percent in period %d\r\n',mean(IBratevec),t);
-fprintf(fileID_S,'[min max] = [%.2f %.2f]\r\n',min(IBratevec),max(IBratevec));
+fprintf(fileID_S,'The average interbank rate was %.2f percent in period %d\r\n',av_IBrate,t);
+fprintf(fileID_S,'[min max] = [%.2f %.2f]\r\n',min_IBrate,max_IBrate);
 
 %-------------------------------------------------------------------------
 %% SECURITIES MARKET
@@ -467,6 +493,8 @@ Results_av(12,end) = av_repayment(end);
 Results_av(13,end) = av_des_FS(end);
 Results_av(14,end) = av_act_FS(end); 
 
+Results_av(15,end) = av_IBrate(end);
+
 % TOT_min: 1xT matrix containing minimum across banks in each time period
 Results_min(1,end)  = min_assets(end);
 Results_min(2,end)  = min_cash(end); 
@@ -486,6 +514,8 @@ Results_min(12,end) = min_repayment(end);
 
 Results_min(13,end) = min_des_FS(end);
 Results_min(14,end) = min_act_FS(end); 
+
+Results_min(15,end) = min_IBrate(end);
 
 % TOT_max: 1xT matrix containing minimum across banks in each time period
 Results_max(1,end)  = max_assets(end);
@@ -507,6 +537,8 @@ Results_max(12,end) = max_repayment(end);
 Results_max(13,end) = max_des_FS(end);
 Results_max(14,end) = max_act_FS(end); 
 
+Results_max(15,end) = max_IBrate(end);
+
 % Percent changes in variables between consecutive time periods
 Results_dAgg(1) = d_total_assets;
 Results_dAgg(2) = d_total_cash;
@@ -515,6 +547,5 @@ Results_dAgg(4) = d_total_ext_assets;
     
 Results_dAgg(5) = d_total_deposits;
 Results_dAgg(6) = d_total_capital;
-
 
 end
