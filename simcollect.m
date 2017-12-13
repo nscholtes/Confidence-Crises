@@ -1,8 +1,9 @@
-function[Results,assetprices,FailCount,cum_Fails,capitalshortfall,num_ActiveBanks,num_ActiveAssets,...
-    numnodes,numedges,density,avdegree,mu_A,mu_B,CB_TOTallotment] = ...
-    simcollect(abmresults_allsims,abmresults_label,n_sims,sim_Results_agg,sim_Results_av,sim_Results_min,sim_Results_max,...
+function[Results_banks,Results,assetprices,FailCount,cum_Fails,capitalshortfall,num_ActiveBanks,num_ActiveAssets,...
+    numnodes,numedges,density,avdegree,mu_A,mu_B,CB_TOTallotment,IBN_adjmat,OPN_adjmat,NNT_matrices,NMT_matrices,meanfail_index] = ...
+    simcollect(abmresults,abmresults_label,n_sims,sim_Results_banks,sim_Results_agg,sim_Results_av,sim_Results_min,sim_Results_max,...
     sim_assetprices,sim_FailCount,sim_num_ActiveBanks,sim_num_ActiveAssets,...
-    sim_numnodes,sim_numedges,sim_density,sim_avdegree,sim_mu_A,sim_mu_B,T,sim_CB_TOTallotment)
+    sim_numnodes,sim_numedges,sim_density,sim_avdegree,sim_mu_A,sim_mu_B,...
+    sim_IBN_adjmat,sim_OPN_adjmat,sim_NNT_matrices,sim_NMT_matrices,T,sim_CB_TOTallotment)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Average results across simulations before passing onto visualisation functions
@@ -26,20 +27,19 @@ cum_Fails(1,:) = cumsum(FailCount(1,:));
 cum_Fails(2,:) = cumsum(FailCount(2,:));
 cum_Fails(3,:) = cumsum(FailCount(3,:));
 
+NumFails             = zeros(1,n_sims);
 sim_capitalshortfall = zeros(n_sims,T);
 
 % Identity of failed banks varies across ABM runs: Compute total capital loss due to failures in each run
 for k = 1:n_sims
-    Failures_sims = abmresults_allsims.(abmresults_label{k}).FailedBanks; 
-    NumFails      = numel(Failures_sims);
-    
-    capitalshortfall_vec = zeros(NumFails,T);
+    Failures_sims        = abmresults.(abmresults_label{k}).FailedBanks; 
+    NumFails(k)          = numel(Failures_sims); 
+    capitalshortfall_vec = zeros(NumFails(k),T);
 
-    for i=1:NumFails
-        capitalshortfall_vec(Failures_sims(i),abmresults_allsims.(abmresults_label{k}).vars(Failures_sims(i)).failtime) = ...
-            abmresults_allsims.(abmresults_label{k}).vars(Failures_sims(i)).balancesheet{'Capital',end};
-    end
-    
+    for i=1:NumFails(k)
+        capitalshortfall_vec(Failures_sims(i),abmresults.(abmresults_label{k}).vars(Failures_sims(i)).failtime) = ...
+            abmresults.(abmresults_label{k}).vars(Failures_sims(i)).balancesheet{'Capital',end};
+    end   
     sim_capitalshortfall(k,:) = abs(sum(capitalshortfall_vec));        
 end
 
@@ -85,8 +85,27 @@ mu_B(3,:) = max(sim_mu_B);
 
 CB_TOTallotment(1,:) = mean(sim_CB_TOTallotment(:,:,1));
 CB_TOTallotment(2,:) = mean(sim_CB_TOTallotment(:,:,2));
-%CB_TOTallotment(2,:) = min(sim_CB_TOTallotment);
-%CB_TOTallotment(3,:) = max(sim_CB_TOTallotment);
+CB_TOTallotment(3,:) = mean(sim_CB_TOTallotment(:,:,3));
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Dynamic adjacency matrices across simulations and policy scenarios
+%% --> To be passed onto network visualisation function
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% For each policy experiment (S=1,2), choose ABM simulation in which total number of failures
+% is closest to the average value across all simulations
+
+mean(NumFails)
+NumFails
+
+[~,meanfail_index] = min(abs(NumFails-mean(NumFails)));
+
+IBN_adjmat = sim_IBN_adjmat(:,:,:,meanfail_index);
+OPN_adjmat = sim_OPN_adjmat(:,:,:,meanfail_index);
+
+NNT_matrices = sim_NNT_matrices(:,:,:,:,meanfail_index);
+NMT_matrices = sim_NMT_matrices(:,:,:,:,meanfail_index);
+
+Results_banks = sim_Results_banks(:,:,:,meanfail_index);
 
 end

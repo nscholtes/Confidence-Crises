@@ -199,7 +199,7 @@ for i = 1:numel(DBV)
   
         if (banks(DBV(i)).balancesheet.assets.cash(t,tau))*(1-MRR) >= banks(DBV(i)).IBM.B_req_tot_loanrepay(t)
            
-            banks(DBV(i)).IBM.canrepay_NoFS(t) = 1;
+            banks(DBV(i)).IBM.canrepay_NoFS(t)          = 1;
             banks(DBV(i)).firesales.fullrepaywithFS(t)  = NaN;
         
             banks(DBV(i)).IBM.B_fin_bil_loanrepay     = banks(DBV(i)).IBM.B_req_bil_loanrepay;
@@ -329,8 +329,7 @@ for i = 1:numel(DBV)
          if abs(banks(DBV(i)).IBM.B_fin_tot_loanrepay(t) - banks(DBV(i)).IBM.B_req_tot_loanrepay(t)) < tol
              
              banks(DBV(i)).firesales.fullrepaywithFS(t)  = 1;
-             
-             banks(DBV(i)).IBM.B_fin_bil_loanrepay  = banks(DBV(i)).IBM.B_req_bil_loanrepay;
+             banks(DBV(i)).IBM.B_fin_bil_loanrepay       = banks(DBV(i)).IBM.B_req_bil_loanrepay;
          else
              
              banks(DBV(i)).firesales.fullrepaywithFS(t)  = 0;
@@ -405,7 +404,8 @@ tot_eaFS_vec_1 = sum(temp_tot_eaFS_vec);
 
 clearvars temp_tot_eaFS_vec temp_tot_eaH_vec
 
-keepassets = find(tot_eaH_vec_1);
+%keepassets = find(tot_eaH_vec_1);
+keepassets = find(tot_eaFS_vec_1);
 
 tot_eaH_vec  = tot_eaH_vec_1(keepassets);
 tot_eaFS_vec = tot_eaFS_vec_1(keepassets);

@@ -9,11 +9,11 @@ Inv_variables = {'Desired investment';'Final investment'};
 
 for i = 1:n_banks
 % Balance sheet
-    cash_array = [banks(i).balancesheet.assets.cash(1,1) banks(i).balancesheet.assets.cash(1:banks(i).failtime,4)'];
-    ea_array   = [banks(i).balancesheet.assets.external_assets(1,1) banks(i).balancesheet.assets.external_assets(1:banks(i).failtime,4)'];
+    cash_array = [banks(i).balancesheet.assets.cash(1,1) banks(i).balancesheet.assets.cash(2:banks(i).failtime,4)'];
+    ea_array   = [banks(i).balancesheet.assets.external_assets(1,1) banks(i).balancesheet.assets.external_assets(2:banks(i).failtime,4)'];
     
-    dep_array  = [banks(i).balancesheet.liabilities.deposits(1,1) banks(i).balancesheet.liabilities.deposits(1:banks(i).failtime,2)'];
-    cap_array  = [banks(i).balancesheet.liabilities.capital(1,1) banks(i).balancesheet.liabilities.capital(1:banks(i).failtime,4)'];
+    dep_array  = [banks(i).balancesheet.liabilities.deposits(1,1) banks(i).balancesheet.liabilities.deposits(2:banks(i).failtime,2)'];
+    cap_array  = [banks(i).balancesheet.liabilities.capital(1,1) banks(i).balancesheet.liabilities.capital(2:banks(i).failtime,4)'];
 
     BS_array = [cash_array; ea_array; dep_array; cap_array];
             

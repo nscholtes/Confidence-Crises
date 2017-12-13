@@ -127,7 +127,7 @@ elseif t > 1
         banks(i).balancesheet.liabilities.total(t,tau)    = banks(i).balancesheet.liabilities.total(t-1,4);
         
         banks(i).balancesheet.liabilities.capital(t,tau)  = banks(i).balancesheet.liabilities.capital(t-1,4);
-  
+
     end
     
     NMT_matrices(:,:,(4*t)-3,1) = ea_holdings_mat(:,:,2);

@@ -79,13 +79,10 @@ dshock_mean = mean(dshock_store);
 
 for i = ActiveBanks
     % Update deposits
-    
     banks(i).depositshock(t) = banks(i).depositshock(t) - dshock_mean;
     
-    banks(i).balancesheet.liabilities.deposits(t,tau) = banks(i).balancesheet.liabilities.deposits(t,tau-1) + banks(i).depositshock(t);
-     %banks(i).balancesheet.liabilities.deposits(t,tau) = banks(i).depositshock(t);
-    
-    banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau-1);
+    banks(i).balancesheet.liabilities.deposits(t,tau) = banks(i).balancesheet.liabilities.deposits(t,tau-1) + banks(i).depositshock(t);    
+    banks(i).balancesheet.assets.cash(t,tau)          = banks(i).balancesheet.assets.cash(t,tau-1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Assigning to banks facing a POSITIVE shock the status of 'designated lender'
@@ -100,16 +97,12 @@ for i = ActiveBanks
         
          banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau)...
          + r_e.* banks(i).balancesheet.assets.external_assets(t,tau-1)... % Receive interest on external asset portfolio;
-         - r_d.*banks(i).balancesheet.liabilities.deposits(t,tau); % Interest on new deposits paid out
+         - r_d.*banks(i).balancesheet.liabilities.deposits(t,tau-1);      % Interest on new deposits paid out
         
         if t == 1
             banks(i).balancesheet.assets.des_investment(t) = banks(i).depositshock(t);
-            banks(i).balancesheet.assets.investment(t)     = banks(i).balancesheet.assets.des_investment(t);
-            
-            %banks(i).balancesheet.assets.cash(t,tau)       = banks(i).balancesheet.assets.cash(t,tau-1);
-            
-        elseif t>1
-            
+            banks(i).balancesheet.assets.investment(t)     = banks(i).balancesheet.assets.des_investment(t);            
+        elseif t>1       
             banks(i).balancesheet.assets.des_investment(t)     =  nanmean(banks(i).balancesheet.assets.investment(1:t-1));
             
 % Banks seek to maintain a constant level of private sector investment in each period.
@@ -138,23 +131,18 @@ for i = ActiveBanks
              elseif banks(i).depositshock(t) < banks(i).balancesheet.assets.des_investment(t)  &&...
                     (banks(i).balancesheet.assets.des_investment(t)  - banks(i).depositshock(t))  > (1-MRR)*banks(i).balancesheet.assets.cash(t,tau)
                 
-                 banks(i).balancesheet.assets.investment(t)     =  (1-MRR)*banks(i).balancesheet.assets.cash(t,tau)+banks(i).depositshock(t);
-                 
-                 banks(i).balancesheet.assets.cash(t,tau) = (MRR)*banks(i).balancesheet.assets.cash(t,tau);
+                 banks(i).balancesheet.assets.investment(t) = (1-MRR)*banks(i).balancesheet.assets.cash(t,tau)+banks(i).depositshock(t);
+                 banks(i).balancesheet.assets.cash(t,tau)   = (MRR)*banks(i).balancesheet.assets.cash(t,tau);
             else
-                disp('Error in lender investment decision!')
-                                     
+                disp('Error in lender investment decision!')                            
             end
-                    
-% Populating matrix with all designated borrowers in each period
-
-         end
-        
+                   
+        end
+         
+        % Creating a matrix with all designated lenders in each period
         lender_count = lender_count+1;
         designated_lender_mat(i) = banks(i).id;
       
-% Creating a matrix with all designated lenders in each period
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Assigning to banks facing a NEGATIVE shock the status of 'designated
 % borrower' --> These banks, wishing to make an investment, must overcome
@@ -260,7 +248,6 @@ myprint(writeoption,fileID_D,'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 myprint(writeoption,fileID_D,'Phase 1\r\n');
 myprint(writeoption,fileID_D,'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\r\n');
 myprint(writeoption,fileID_D,'**********************************************************************************\r\n');
-%myprint(writeoption,fileID_D,'**************** Information in the current simulation is %s ****************\r\n',information);
 myprint(writeoption,fileID_D,'**********************************************************************************\r\n');
 
 myprint(writeoption,fileID_D,'====================================================================================================================================================================\r\n');
@@ -291,7 +278,9 @@ for i = 1:numel(DBV)
 if t == 1
     banks(DBV(i)).balancesheet.assets.des_investment(t) = abs(banks(DBV(i)).depositshock(t));
 elseif t > 1
-    banks(DBV(i)).balancesheet.assets.des_investment(t) =  nanmean(banks(DBV(i)).balancesheet.assets.investment(1:t-1));  
+    banks(DBV(i)).balancesheet.assets.des_investment(t) =  nanmean(banks(DBV(i)).balancesheet.assets.investment(1:t-1));
+    
+    %+abs(banks(DBV(i)).depositshock(t));  
 end
 
     banks(DBV(i)).balancesheet.assets.cash(t,tau) = banks(DBV(i)).balancesheet.assets.cash(t,tau)...
@@ -432,7 +421,6 @@ borr_req_mat(:,:,t) = borr_req_mat(:,:,t)';
 %     %DLV(del_DLV)    = [];
 % end
 
-
 %-------------------------------------------------------------------------
 %% LENDER OFFERS
 %-------------------------------------------------------------------------
@@ -452,8 +440,7 @@ myprint(writeoption,fileID_D,'==================================================
 
 for i = 1:numel(DLV)
     
-    % Variables associated to borrowers are set = NaN
-    
+    % Variables associated to borrowers are set = NaN 
     banks(DLV(i)).numlending_cps(t)     = NaN;
     
     banks(DLV(i)).IBM.B_noCP(t)         = NaN;
@@ -465,8 +452,7 @@ for i = 1:numel(DLV)
     banks(DLV(i)).IBM.B_bil_loans(t)    = NaN;
     banks(DLV(i)).IBM.B_tot_loans(t)    = NaN;   
     
-    % 2nd end of phase update (LENDERS): Lenders determine cash available + extra income to make interbank loans
-      
+    % 2nd end of phase update (LENDERS): Lenders determine cash available + extra income to make interbank loans 
     temp_reqstore = borr_req_mat(DLV(i),:,t);
     temp_reqstore(temp_reqstore==0)=[];
     
