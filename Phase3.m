@@ -14,9 +14,9 @@ tau = 4;
 for i = ActiveBanks
     banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau-1);
     
-   % if banks(i).balancesheet.liabilities.deposits(t,2) < 0
-       % banks(i).balancesheet.liabilities.deposits(t,2) = banks(i).balancesheet.liabilities.deposits(t-1,2);
-    %end
+%     if banks(i).balancesheet.liabilities.deposits(t,2) < 0 && t>1
+%         banks(i).balancesheet.liabilities.deposits(t,2) =  banks(i).balancesheet.liabilities.deposits(t-1,2);
+%     end
 end
 
 %------------------------------------------------
@@ -26,7 +26,6 @@ end
 if strcmp(CBintervention,'on') && mod(t,refinancingfrequency) == 0
     
     loangap = zeros(1,numel(DBV));
-    
     B_needliqcount = 0;
     
     for i = 1:numel(DBV)
@@ -81,6 +80,7 @@ elseif strcmp(CBintervention,'off') || mod(t,refinancingfrequency) ~= 0
     L_CB_totalallotment = 0;
 end
 
+% Storing borrower and lender allotments
 CB_totalallotment(1) = B_CB_totalallotment;
 CB_totalallotment(2) = L_CB_totalallotment;
 
@@ -92,7 +92,7 @@ CB_totalallotment(2) = L_CB_totalallotment;
 for i = ActiveBanks
 
     % Assets after central bank intervention
-        banks(i).balancesheet.assets.total(t,tau) = banks(i).balancesheet.assets.cash(t,tau)+...
+    banks(i).balancesheet.assets.total(t,tau) = banks(i).balancesheet.assets.cash(t,tau)+...
         banks(i).balancesheet.assets.external_assets(t,tau);
     
     % Liabilities
@@ -114,28 +114,14 @@ for i = ActiveBanks
     banks(i).status(t) = '-';
     banks(i).failtime  = 0;
     
-%     % Assets after end-of-period returns paid on investment
-%     banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau) +...
-%             (r_z).*banks(i).balancesheet.assets.investment(t);
-%         
-%     banks(i).balancesheet.assets.total(t,tau) = banks(i).balancesheet.assets.cash(t,tau)+...
-%         banks(i).balancesheet.assets.external_assets(t,tau);
+    insolvencyrequirement(i,t) = false;
     
-    % Liabilities
-    
-   % banks(i).balancesheet.liabilities.capital(t,tau) = banks(i).balancesheet.assets.total(t,tau)-...
-       % banks(i).balancesheet.liabilities.deposits(t,tau-2);
-    
-   % banks(i).balancesheet.liabilities.total(t,tau) = banks(i).balancesheet.assets.total(t,tau);
-    
-    if t<5
+    if t<3
         insolvencyrequirement(i) =  false;
     else
         insolvencyrequirement(i) = logical(banks(i).balancesheet.liabilities.capital(t,tau)   < 0 &&...
                                     banks(i).balancesheet.liabilities.capital(t-1,tau) < 0 &&...
-                                    banks(i).balancesheet.liabilities.capital(t-2,tau) < 0 &&...
-                                    banks(i).balancesheet.liabilities.capital(t-3,tau) < 0 && ...
-                                    banks(i).balancesheet.liabilities.capital(t-4,tau) < 0);
+                                    banks(i).balancesheet.liabilities.capital(t-2,tau) < 0);                     
     end      
 end
 
@@ -145,6 +131,8 @@ end
 
 if strcmp(FRFA,'on')
      for i = ActiveBanks
+         
+         FailCount = 0;
         
         if insolvencyrequirement(i)
             banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau)+...
@@ -157,9 +145,9 @@ if strcmp(FRFA,'on')
             FRFA_ind_allotment(i) = 0;
         end
         
-        banks(i).status(t)   = 'A';
+        banks(i).status(t)      = 'A';
         banks(i).IBrolewhenfail = [];
-        banks(i).failtime    = T;
+        banks(i).failtime       = T;
         
      end
      
@@ -167,7 +155,7 @@ if strcmp(FRFA,'on')
      
      ibn_adjmat = ibn_adjmat;
      opn_adjmat = opn_adjmat;
-          
+        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % FRFA policy inactive: Insolvent banks are allowed to fail. External assets are
 % divided amongst the bank's counterparties
@@ -202,8 +190,9 @@ elseif strcmp(FRFA,'off')
                 banks(j).balancesheet.assets.external_assets(t,tau)+...
                 (1/banks(i).num_counterparties(t)).*(banks(i).balancesheet.assets.external_assets(t,tau));
             
-               banks(j).balancesheet.assets.external_asset_holdings((4*t),:) = ones(1,banks(j).balancesheet.assets.num_external_assets(t)).*...
-               (banks(j).balancesheet.assets.external_assets(t,tau)./banks(j).balancesheet.assets.num_external_assets(t));
+               banks(j).balancesheet.assets.external_asset_holdings((4*t),:) = banks(j).balancesheet.assets.external_asset_holdings((4*t),:) +...
+                   ones(1,banks(j).balancesheet.assets.num_external_assets(t)).*...
+                   (banks(i).balancesheet.assets.external_assets(t,tau)./banks(i).num_counterparties(t));
            
                 banks(j).balancesheet.assets.external_asset_port((4*t),:) = banks(j).balancesheet.assets.external_asset_holdings((4*t),:).*...
                 AP(banks(j).balancesheet.assets.external_asset_ids);
@@ -212,9 +201,9 @@ elseif strcmp(FRFA,'off')
                 ea_port_mat(j,banks(j).balancesheet.assets.external_asset_ids)     = banks(j).balancesheet.assets.external_asset_port(4*t,:);
             end
             
-            % Adjust external asset matrices of failed banks after redistribution across counterpartied.
-            ea_holdings_mat(i,banks(i).balancesheet.assets.external_asset_ids) = banks(i).balancesheet.assets.num_external_assets(t);
-            ea_port_mat(i,banks(i).balancesheet.assets.external_asset_ids)     = banks(i).balancesheet.assets.num_external_assets(t);
+            % Adjust external asset matrices of failed banks after redistribution across counterparties.
+            ea_holdings_mat(i,banks(i).balancesheet.assets.external_asset_ids) = zeros(1,banks(i).balancesheet.assets.num_external_assets(t));
+            ea_port_mat(i,banks(i).balancesheet.assets.external_asset_ids)     = zeros(1,banks(i).balancesheet.assets.num_external_assets(t));
             
             banks(i).balancesheet.assets.external_assets(t,tau)                = 0;
                 
@@ -226,9 +215,14 @@ elseif strcmp(FRFA,'off')
             opn_adjmat(i,:) = zeros(1,m_assets);
         
         else 
+            FailCount = FailCount;
+            
             banks(i).status(t)      = 'A';
             banks(i).IBrolewhenfail = [];
-            banks(i).failtime       = T;       
+            banks(i).failtime       = T; 
+            
+            ibn_adjmat = ibn_adjmat;
+            opn_adjmat = opn_adjmat;
         end  
     end
 end
@@ -277,6 +271,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Update primary matrices
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+clearvars insolvencyrequirement
 
 NMT_matrices(:,:,(4*t),1) = ea_holdings_mat(:,:);
 NMT_matrices(:,:,(4*t),2) = ea_port_mat(:,:);

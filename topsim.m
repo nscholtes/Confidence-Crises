@@ -67,13 +67,14 @@ tol = 1.e-6; % Tolerance value for == conditional statements
 % Bank size/fitness distribution parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-n_banks     = 50;        % Number of banks
-a_min       = 5;         % Minimum bank size
-a_max       = 100;       % Maximum bank size
-gamma       = 2;         % Power law exponent for bank size distribution
-d           = 0.5;       % Calibrate network density
+n_banks = 50;        % Number of banks
+a_min   = 5;         % Minimum bank size
+a_max   = 100;       % Maximum bank size
+gamma_a = 2;         % Power law exponent for bank size distribution
+gamma   = 1.4;
+d       = 8;       % Calibrate network density
 
-Pars_netgen = [d,a_min,a_max,gamma,n_banks];
+Pars_netgen = [d,a_min,a_max,gamma_a,gamma,n_banks];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Overlapping portfolio parameters
@@ -143,7 +144,6 @@ Pars_pshock = [num_shocked_ea_S, eashock_LB_S, eashock_UB_S market_depth_S;
 
 MRR                  = 0.02;     % Minimum reserve requirement
 refinancingfrequency = 5;        % Central bank refinancing frequency (weekly)
-simtype              = 'crisis';
 FRFAtime             = T/2+25:T;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -151,30 +151,32 @@ FRFAtime             = T/2+25:T;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 r_z  = 0.05; % Illiquid investment rate
-r_d  = 0.02; % Deposit rate
+r_d  = 0.02; % 0.02; % Deposit rate
 r_e  = 0.03; % External asset return
 r_b  = 0.04; % Initial interbank rate
 
 Pars_interestrates = [r_z r_d r_e r_b];
 
 %--------------------------------------------------------------------------
-% Generating the network
+%% Generating the network
 %--------------------------------------------------------------------------
 
 a_sim          = zeros(n_banks,n_networks);
 ibn_adjmat_sim = zeros(n_banks,n_banks,n_networks);
+opn_adjmat_sim = zeros(n_banks,m_assets,n_networks);
 density_vec    = zeros(1,n_networks);
 
-for k = 1:n_networks
-    fprintf(1,'Network iteratiom: %d/%d\n',k,n_networks);
-    [a_sim(:,k),ibn_adjmat_sim(:,:,k)] = netgen(Pars_netgen,fileID_IBN,fig_output);   
-    density_vec(k) = density_und(ibn_adjmat_sim(:,:,k)); % Compute density of each simulated network
+for i = 1:n_networks
+    fprintf(1,'Network iteratiom: %d/%d\n',i,n_networks);
+    [a_sim(:,i),ibn_adjmat_sim(:,:,i)] = netgen(Pars_netgen,fileID_IBN,fig_output);   
+    density_vec(i) = density_und(ibn_adjmat_sim(:,:,i)); % Compute density of each simulated network    
+    opn_adjmat_sim(:,:,i) = opnet(n_banks,Pars_opnet,T,fig_output);
     clc
 end
 
 median_density = median(density_vec); % Compute median density
 
-fprintf('The median density across %d simulated networks is %.3f\n',n_networks,median_density)
+fprintf(' --> The median density across %d simulated networks is %.3f\n',n_networks,median_density)
 
 % Find index of median density
 if ismember(median_density,density_vec)
@@ -183,38 +185,48 @@ if ismember(median_density,density_vec)
         median_index = datasample(median_index,1);
     end
 else
-    %median_index =  (min(find(median_density>median(density_vec))) + max(find(median_density<median(density_vec))))/2;
     [~,ord] = sort(density_vec);
     median_index = ord(floor(n_networks/2)+(rem(n_networks,2)==0):floor(n_networks/2)+1);
-    %median_density = mean(density_vec(median_index));
-
 end
 
 % Use index to output the final interbank exposure adjacency matrix passed on to the ABM
-a = a_sim(:,median_index);
+a               = a_sim(:,median_index);
+ibn_adjmat_init = ibn_adjmat_sim(:,:,median_index);
+opn_adjmat_init = opn_adjmat_sim(:,:,median_index);
+
+distance_matrix = distance_bin(ibn_adjmat_init);
+[avpathlength,~,~,~,~] = charpath(distance_matrix,0,0);
+
+NM1_assortativity = assortativity_bin(ibn_adjmat_init,0);
+NM2_Avpathlength  = avpathlength;
+NM3_density       = median_density;
+NM4_bilexp        = sum(sum(ibn_adjmat_init));
 
 fig_output_IBN   = strcat(fig_output,'Network/');
 
 figure
-hist(a);
-title('Empirical distribution of node fitness values')
-xlabel('a')
-ylabel('f(a)')
+subplot(1,2,1)
+    histogram(a);
+    title('Node fitness distribution','Interpreter','latex')
+    xlabel('a')
+    ylabel('f(a)')
+subplot(1,2,2)
+    histogram(sum(ibn_adjmat_init),5)
+    title('Degree distribution','Interpreter','latex')
+    xlabel('deg')
+    ylabel('f(deg)')
 set(gcf,'renderer','painters');
-set(gcf,'Units','Inches');
-pos = get(gcf,'Position');
-set(gcf,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-print(gcf,'-dpdf',strcat(fig_output_IBN,'sizedist.pdf'));
-
-ibn_adjmat_init = ibn_adjmat_sim(:,:,median_index);
-
-[opn_adjmat_init]   = opnet(n_banks,Pars_opnet,T,fig_output);
+%set(gcf,'Units','Inches');
+%pos = get(gcf,'Position');
+%set(gcf,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
+set(gcf,'Units', 'Centimeters', 'Position', [0, 0, 16, 8],'PaperUnits','Centimeters','PaperSize',[16,8])
+print(gcf,'-dpdf',strcat(fig_output_IBN,'networkproperties.pdf'));
 
 clearvars a_sim ibn_adjmat_sim density_vec  median_index ord
 
 save('network.mat'); % Save workspace as .mat file
 
-close all;
+%close all;
 clc
 
 %--------------------------------------------------------------------------
@@ -222,10 +234,14 @@ clc
 %--------------------------------------------------------------------------
 
 load('network.mat')
+fileID_S = fopen(strcat('Logs/summary_log_',timestamp,'.txt'),'w');
 
+stdnorm_matrix = normrnd(0,1,[n_banks,T_sim]);
+
+simtype    = 'crisis';
 sim_vector = {'off','on'};
 
-FIN_RESULTS          = zeros(15,T_sim,4,2);
+FIN_RESULTS          = zeros(16,T_sim,4,2);
 FIN_ASSETPRICES      = zeros(4*T_sim,m_assets,2);
 FIN_FAILCOUNT        = zeros(3,T_sim,2);
 FIN_CUM_FAILS        = zeros(3,T_sim,2);
@@ -246,7 +262,7 @@ FIN_NMT_matrices     = zeros(n_banks,m_assets,4*T,2,2);
 FIN_IBN_ADJMAT       = zeros(n_banks,n_banks,T_sim,2);
 FIN_OPN_ADJMAT       = zeros(n_banks,m_assets,T_sim,2);
 
-FIN_RESULTS_BANKS = zeros(n_banks,T_sim,14,2);
+FIN_RESULTS_BANKS = zeros(n_banks,T_sim,15,2);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -254,17 +270,17 @@ FIN_RESULTS_BANKS = zeros(n_banks,T_sim,14,2);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for S = 1:2
+    
+T = T_sim;
 
 if strcmp(simtype,'baseline')
     CBintervention = sim_vector{S};
-    FRFA           = 'NA';
+    FRFA           = 'off';
     sim_label      = {'noCB','CB_noFRFA'};
 elseif strcmp(simtype,'crisis')
     CBintervention = 'on';
     sim_label      = {'CB_noFRFA','CB_FRFA'};
 end
-
-T = T_sim;
 
 sim_IBN_adjmat = zeros(n_banks,n_banks,T,n_sims);
 sim_OPN_adjmat = zeros(n_banks,m_assets,T,n_sims);
@@ -274,11 +290,11 @@ sim_NMT_matrices = zeros(n_banks,m_assets,4*T,2,n_sims);
 sim_TM_matrices  = zeros(T,m_assets,2);
 
 % Storing summarised matrix for each run of the ABM
-sim_Results_banks = zeros(n_banks,T,14,n_sims);
-sim_Results_agg   = zeros(15,T,n_sims);
-sim_Results_av    = zeros(15,T,n_sims);
-sim_Results_min   = zeros(15,T,n_sims);
-sim_Results_max   = zeros(15,T,n_sims);
+sim_Results_banks = zeros(n_banks,T,15,n_sims);
+sim_Results_agg   = zeros(16,T,n_sims);
+sim_Results_av    = zeros(16,T,n_sims);
+sim_Results_min   = zeros(16,T,n_sims);
+sim_Results_max   = zeros(16,T,n_sims);
 
 sim_assetprices   = ones(4*T,m_assets,n_sims);
 sim_failcount     = zeros(n_sims,T);
@@ -305,6 +321,9 @@ clc
 tic
 for k = 1:n_sims
 
+T       = T_sim;
+Allfail = false;
+
 % Define label to store cleaned ABM results for each run
 abmresults_label{k} = strcat('sim',num2str(k));
 
@@ -315,6 +334,7 @@ abmresults_label{k} = strcat('sim',num2str(k));
     IBN_adjmat,OPN_adjmat,Results_banks,Results_agg,Results_av,Results_min,Results_max,Results_dAgg,...
     total_firesales_vec,d_assetprices,d_firesales,CB_TOTallotment] =...
     siminitialize(T_sim,n_banks,m_assets,ibn_adjmat_init,opn_adjmat_init);
+
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Nested loop level 2: Run the ABM over the predetermiend number of iteration steps
@@ -322,15 +342,15 @@ abmresults_label{k} = strcat('sim',num2str(k));
     for t=1:T
         if t==1
             x = 1;
-        else  
+        else
             x = t-1;
         end
+        if ~ismember(t,shocktime)
+            Pars_pshock_current = Pars_pshock(1,:);
+        elseif ismember(t,shocktime)
+            Pars_pshock_current = Pars_pshock(2,:);
+        end
         if strcmp(simtype,'crisis')
-            if ~ismember(t,shocktime)
-                Pars_pshock_current = Pars_pshock(1,:);
-            elseif ismember(t,shocktime)
-                Pars_pshock_current = Pars_pshock(2,:);
-            end  
             if S == 1    % 1st crisis experiment: central bank intervenes normally but no FRFA
                 FRFA = 'off';
             elseif S == 2 % 2nd crisis experiment: normal interventions and turn on FRFA at a predetermined time
@@ -339,10 +359,11 @@ abmresults_label{k} = strcat('sim',num2str(k));
                 elseif ismember(t,FRFAtime)
                     FRFA = 'on';
                 end
-            end
-        elseif strcmp(simtype,'baseline')
-            Pars_pshock_current = Pars_pshock(1,:);
+            end            
         end
+        %elseif strcmp(simtype,'baseline')
+            %Pars_pshock_current = Pars_pshock(1,:);
+        %end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Model dynamics
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
@@ -360,12 +381,16 @@ abmresults_label{k} = strcat('sim',num2str(k));
         disp('-----------------------------------------------------')
         fprintf(1,'Current simulation: %d/%d\n',k,n_sims);
         fprintf(1,'--> Current period: %d/%d\n',t,T_sim);
+            
+        if Allfail == true
+            break
+        end
 % Phase 0: Initialisation, Population of the network and carrying over of variables from previous iterations
         [banks,NMT_matrices,assetprices] =...
             Phase0(banks,ActiveBanks,a,Pars_balancesheet,T,t,IBN_adjmat(:,:,x),NMT_matrices,OPN_adjmat(:,:,x),assetprices);
 % Phase 1: Deposit shock, investment decision, interbank market
         [banks,DBV,DLV,NT_matrices,NNT_matrices] = ...
-            Phase1(banks,ActiveBanks,IBN_adjmat(:,:,x),n_banks,beta,Pars_interestrates,Pars_dshock,MRR,...
+            Phase1(banks,stdnorm_matrix,ActiveBanks,IBN_adjmat(:,:,x),n_banks,beta,Pars_interestrates,Pars_dshock,MRR,...
             NT_matrices,NNT_matrices,t,fileID_D,writeoption,tol);
 % Phase 2: Asset price shock, loan repayment, firesales and second round effects
         [banks,assetprices,OPN_adjmat(:,:,t),NMT_matrices,NNT_matrices,TM_matrices] = ...
@@ -390,18 +415,19 @@ abmresults_label{k} = strcat('sim',num2str(k));
             m_assets,assetprices,total_firesales_vec(:,:,t),d_assetprices((2*t)-1:2*t,:),d_firesales(t),...
             IBN_adjmat(:,:,t),OPN_adjmat(:,:,t),FailCount_vec(t),FailedBankID_mat(t,:),DBV,DLV,t,fileID_S);  
         clc;
-        if numel(ActiveBanks) == 0
-            fprintf(1,'All banks failed by period %d\n',t)
-            T = t;
-            break
-        end        
+         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Intra-period housekeeping and collecting results across simulations
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%       
     [banks] = housekeeping(banks,n_banks);
     clearvars DBV DLV
+        if numel(ActiveBanks) == 0
+            fprintf(1,'All banks failed by period %d\n',t)
+            T       = t;
+            Allfail = true; 
+        end  
     end
-    
+       
     % Adjacency matrix dynamics. DIM = N x N x T x K x 2. DIM(4) = number of ABM simulations   
     sim_NNT_matrices(:,:,:,:,k) = NNT_matrices;
     sim_NMT_matrices(:,:,:,:,k) = NMT_matrices;
@@ -440,13 +466,12 @@ abmresults_label{k} = strcat('sim',num2str(k));
     FIN_abmresults.(sim_label{S}).(abmresults_label{k}).ActiveBanks  = ActiveBanks;
     FIN_abmresults.(sim_label{S}).(abmresults_label{k}).FailedBanks  = FailedBanks; 
     FIN_abmresults.(sim_label{S}).(abmresults_label{k}).ActiveAssets = ActiveAssets;
-    
-clearvars banks banksfail abmresults Results_banks Results_agg Results_av Results_min Results_max Results_d_Agg...
+
+clc
+clearvars banks banksfail abmresults Results_banks Results_agg Results_av Results_min Results_max Results_dAgg...
     assetprices FailCount_vec FailedBankID_mat numedges ActiveBanks num_ActiveBanks FailedBanks num_FailedBanks...
     ActiveAssets num_ActiveAssets num_InactiveAssets mu_A mu_B CB_TOTallotment total_firesales_vec...
     IBN_adjmat OPN_adjmat NNT_matrices NMT_matrices NT_matrices TM_matrices
-
-clc
 end
 toc
 
@@ -467,7 +492,7 @@ toc
 
 clearvars sim_Results_banks sim_Results_agg sim_Results_av sim_Results_min sim_Results_max sim_assetprices sim_failcount...   
 sim_num_ActiveBanks sim_num_ActiveAssets sim_numnodes sim_numedges sim_density sim_avdegree sim_mu_A...     
-sim_mu_B sim_CB_TOTallotment 
+sim_mu_B sim_CB_TOTallotment  sim_NMT_matrices sim_NNT_matrices sim_OPN_adjmat sim_TM_matrices sim_IBN_adjmat
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CLEAN UP  AND SAVE WORKSPACE 
@@ -476,6 +501,8 @@ clearvars a a_max a_min alpha av_div beta d_assetprices d_firesales eashock_LB_C
     eashock_UB_C eashock_UB_S fileID_D fileID_IBN fileID_S gamma dTOT_matrices market_depth_C...
     market_depth_S num_shocked_ea_C num_shocked_ea_S Pars_balancesheet Pars_dshock Pars_interestrates...
     Pars_netgen Pars_opnet Pars_policy Pars_pshock Pars_pshock_current psi r_b r_d r_e r_z SPF theta ...
+    abmresults_label Allfail avpathlength d distance_matrix gamma_a k m_assets meanfail_index median_density...
+    NM1_assortativity NM2_Avpathlength NM3_density NM4_bilexp
     
 save(char(strcat('output_',simtype,'_',sim_label(S),'_',timestamp,'.mat'))); % Save workspace as .mat file
 

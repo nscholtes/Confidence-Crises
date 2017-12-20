@@ -42,7 +42,7 @@ end
     xlim([0 T_sim]);
     xlabel('Iteration step','Interpreter','latex')
     grid on;
-    title('Cumulative failures','Interpreter','latex')
+    title('(a) Cumulative failures','Interpreter','latex')
      if strcmp(simtype,'baseline')
         legend([h1 h2],{'CB refinancing OFF','CB refinancing ON'},...
             'Location','northwest','FontSize',8,'Interpreter','latex')
@@ -63,9 +63,8 @@ end
     hold on
     h2 = plot(cumsum(capitalshortfall(1,:,2)),'Color','b','LineWidth',1.1);
     xlim([0 T_sim]);
-    xlabel('Iteration step','Interpreter','latex')
     grid on;
-    title('Cumulative capital shortfall','Interpreter','latex')
+    title(' (b) Cumulative capital shortfall','Interpreter','latex')
      %if strcmp(simtype,'baseline')
         %legend([h1 h2],{'CB refinancing OFF','CB refinancing ON'},'Location','best','FontSize',8,'Interpreter','latex')
     %elseif strcmp(simtype,'crisis')
@@ -75,7 +74,7 @@ set(gcf,'renderer','painters');
 %set(gcf,'Units','Inches');
 %pos = get(gcf,'Position');
 %set(gcf,'PaperPositionMode','Auto','PaperUnits','centimeters','PaperSize',[pos(3),pos(4)])
-set(gcf,'Units', 'Centimeters', 'Position', [0, 0, 16, 8],'PaperUnits','Centimeters','PaperSize',[16,8])
+set(gcf,'Units', 'Centimeters', 'Position', [0, 0, 18, 8],'PaperUnits','Centimeters','PaperSize',[18,8])
 print(gcf,'-dpdf',strcat(fig_output_F,'failures+CS','.pdf'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  
@@ -89,7 +88,7 @@ print(gcf,'-dpdf',strcat(fig_output_F,'failures+CS','.pdf'));
 figure
 subplot(1,3,1)
     if strcmp(simtype,'crisis')
-        rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),160],...
+        rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),800],...
         'FaceColor',[0.8 0.8 0.8],'EdgeColor',[0.8 0.8 0.8]);
         hold on
         plot([FRFAtime(1), FRFAtime(1)],get(gca,'ylim'),'--k','LineWidth',2);
@@ -103,16 +102,16 @@ subplot(1,3,1)
     title('Number of edges','Interpreter','latex')
     if strcmp(simtype,'baseline')
         legend([h1 h2],{'CB refinancing OFF','CB refinancing ON'},...
-            'Location','southwest','FontSize',8,'Interpreter','latex')
+            'Location','southwest','FontSize',6,'Interpreter','latex')
     elseif strcmp(simtype,'crisis')
         legend([h1 h2],{'FRFA OFF','FRFA ON'},...
-            'Location','southwest','FontSize',8,'Interpreter','latex')
+            'Location','southwest','FontSize',6,'Interpreter','latex')
     end
     xlabel('Iteration step','Interpreter','latex')
 %----------------------------------------------------------------------------------------------------------    
 subplot(1,3,2)
     if strcmp(simtype,'crisis')
-        rectangle('Position',[shocktime(1),0.04,shocktime(end)-shocktime(1),0.03],...
+        rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),0.3],...
         'FaceColor',[0.8 0.8 0.8],'EdgeColor',[0.8 0.8 0.8]);
         hold on
         plot([FRFAtime(1), FRFAtime(1)],get(gca,'ylim'),'--k','LineWidth',2);
@@ -129,11 +128,10 @@ subplot(1,3,2)
     %elseif strcmp(simtype,'crisis')
         %legend([h1 h2],{'FRFA OFF','FRFA ON'},'Location','best','FontSize',8,'Interpreter','latex')
     %end
-    xlabel('Iteration step','Interpreter','latex')
 %----------------------------------------------------------------------------------------------------------
 subplot(1,3,3)
     if strcmp(simtype,'crisis')
-        rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),5],...
+        rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),15],...
         'FaceColor',[0.8 0.8 0.8],'EdgeColor',[0.8 0.8 0.8]);
         hold on
         plot([FRFAtime(1), FRFAtime(1)],get(gca,'ylim'),'--k','LineWidth',2);
@@ -156,7 +154,7 @@ set(gcf,'renderer','painters');
 %set(gcf,'Units','Inches');
 %pos = get(gcf,'Position');
 %set(gcf,'PaperPositionMode','Auto','PaperUnits','centimeters','PaperSize',[pos(3),pos(4)])
-set(gcf,'Units', 'Centimeters', 'Position', [0, 0, 16, 8],'PaperUnits','Centimeters','PaperSize',[16,8])
+set(gcf,'Units', 'Centimeters', 'Position', [0, 0, 18, 8],'PaperUnits','Centimeters','PaperSize',[18,8])
 print(gcf,'-dpdf',strcat(fig_output_F,'IBnetwork','.pdf'));
 
 %-----------------------------------------------------
@@ -166,7 +164,7 @@ print(gcf,'-dpdf',strcat(fig_output_F,'IBnetwork','.pdf'));
 figure
 subplot(1,3,1)
     if strcmp(simtype,'crisis')
-        rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),10],...
+        rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),12],...
         'FaceColor',[0.8 0.8 0.8],'EdgeColor',[0.8 0.8 0.8]);
         hold on
         plot([FRFAtime(1), FRFAtime(1)],get(gca,'ylim'),'--k','LineWidth',2);
@@ -177,17 +175,17 @@ subplot(1,3,1)
     h2 = plot(mu_A(1,:,2),'Color','b','LineWidth',1.1);
     xlim([0 T_sim]);
     grid on;
-    title('$\mu_{A}$ (Average diversification)','Interpreter','latex')
+    title('$\mu_{A}$','Interpreter','latex')
     if strcmp(simtype,'baseline')
-        legend([h1 h2],{'CB refinancing OFF','CB refinancing ON'},'Location','best','FontSize',8,'Interpreter','latex')
+        legend([h1 h2],{'CB refinancing OFF','CB refinancing ON'},'Location','best','FontSize',6,'Interpreter','latex')
     elseif strcmp(simtype,'crisis')
-        legend([h1 h2],{'FRFA OFF','FRFA ON'},'Location','best','FontSize',8,'Interpreter','latex')
+        legend([h1 h2],{'FRFA OFF','FRFA ON'},'Location','best','FontSize',6,'Interpreter','latex')
     end
     xlabel('Iteration step','Interpreter','latex')
 %----------------------------------------------------------------------------------------------------------    
 subplot(1,3,2)
     if strcmp(simtype,'crisis')
-        rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),10],...
+        rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),14],...
         'FaceColor',[0.8 0.8 0.8],'EdgeColor',[0.8 0.8 0.8]);
         hold on;
         plot([FRFAtime(1), FRFAtime(1)],get(gca,'ylim'),'--k','LineWidth',2);
@@ -198,13 +196,12 @@ subplot(1,3,2)
     h2 = plot(mu_B(1,:,2),'Color','b','LineWidth',1.1);
     xlim([0 T_sim]);
     grid on;
-    title('$\mu_{B}$ (Average diversification)','Interpreter','latex')
+    title('$\mu_{B}$','Interpreter','latex')
     %if strcmp(simtype,'baseline')
         %legend([h1 h2],{'CB refinancing OFF','CB refinancing ON'},'Location','best','FontSize',8,'Interpreter','latex')
     %elseif strcmp(simtype,'crisis')
         %legend([h1 h2],{'FRFA OFF','FRFA ON'},'Location','best','FontSize',8,'Interpreter','latex')
     %end
-    xlabel('Iteration step','Interpreter','latex')
 %----------------------------------------------------------------------------------------------------------    
 subplot(1,3,3)
     if strcmp(simtype,'crisis')
@@ -219,19 +216,18 @@ subplot(1,3,3)
     h2 = plot(N_vec(1,:,2)./M_vec(1,:,2),'Color','b','LineWidth',1.1);
     xlim([0 T_sim]);
     grid on;
-    title('$N/M$ (Crowding)','Interpreter','latex')
+    title('$N/M$','Interpreter','latex')
     %if strcmp(simtype,'baseline')
         %legend([h1 h2],{'CB refinancing OFF','CB refinancing ON'},'Location','best','FontSize',8,'Interpreter','latex')
     %elseif strcmp(simtype,'crisis')
         %legend([h1 h2],{'FRFA OFF','FRFA ON'},'Location','best','FontSize',8,'Interpreter','latex')
     %end
-    xlabel('Iteration step','Interpreter','latex')
 %----------------------------------------------------------------------------------------------------------
 set(gcf,'renderer','painters');
 %set(gcf,'Units','Inches');
 %pos = get(gcf,'Position');
 %set(gcf,'PaperPositionMode','Auto','PaperUnits','centimeters','PaperSize',[pos(3),pos(4)])
-set(gcf,'Units', 'Centimeters', 'Position', [0, 0, 16, 8],'PaperUnits','Centimeters','PaperSize',[16,8])
+set(gcf,'Units', 'Centimeters', 'Position', [0, 0, 18, 8],'PaperUnits','Centimeters','PaperSize',[18,8])
 print(gcf,'-dpdf',strcat(fig_output_F,'OPnetwork','.pdf'));
 
 %-----------------------------------------------------
@@ -285,7 +281,7 @@ set(gcf,'renderer','painters');
 %set(gcf,'Units','Inches');
 %pos = get(gcf,'Position');
 %set(gcf,'PaperPositionMode','Auto','PaperUnits','centimeters','PaperSize',[pos(3),pos(4)])
-set(gcf,'Units', 'Centimeters', 'Position', [0, 0, 16, 8],'PaperUnits','Centimeters','PaperSize',[16,8])
+set(gcf,'Units', 'Centimeters', 'Position', [0, 0, 18, 8],'PaperUnits','Centimeters','PaperSize',[18,8])
 print(gcf,'-dpdf',strcat(fig_output_F,'ActiveBanks+Assets','.pdf'));
 
 end

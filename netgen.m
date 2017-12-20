@@ -21,8 +21,9 @@ fig_output_Gephi = strcat(fig_output_IBN,'Gephi/');
 d       = Pars_netgen(1);
 a_min   = Pars_netgen(2);
 a_max   = Pars_netgen(3);
-gamma   = Pars_netgen(4);
-n_banks = Pars_netgen(5);
+gamma_a = Pars_netgen(4);
+gamma   = Pars_netgen(5);
+n_banks = Pars_netgen(6);
 
 %-------------------------------------------------------------------------
 %% Drawing node fitness distribution from a truncated power law
@@ -36,7 +37,7 @@ n_draws = 100000;
 n_replicates = n_banks;
 n_notconnected = 0;
 rnd_LB = 1;
-rnd_UB = n_banks/5;
+rnd_UB = n_banks/10;
 
 % User-specified minimum degree of all nodes in the network
 
@@ -44,10 +45,10 @@ mindeg = 1;
 
 a_minvec  = ones(n_draws,1)'*a_min;
 a_maxvec  = ones(n_draws,1)'*a_max;
-a_diffvec = a_maxvec.^(1-gamma) - a_minvec.^(1-gamma);
+a_diffvec = a_maxvec.^(1-gamma_a) - a_minvec.^(1-gamma_a);
 
 u = rand(1,n_draws);
-all_draws = (a_minvec.^(1-gamma)+ u.*(a_diffvec)).^(1/(1-gamma));
+all_draws = (a_minvec.^(1-gamma_a)+ u.*(a_diffvec)).^(1/(1-gamma_a));
 
 probability_matrix = zeros(n_banks);
 adjacency_matrix = zeros(n_banks,n_banks,n_replicates);
@@ -68,7 +69,7 @@ a_max = max(a);
 for i=2:n_banks
     j=1;
     while j<i           
-        probability_matrix(i,j) = d.*(a(i)/(a_max))*(a(j)/a_max);
+        probability_matrix(i,j) = d.*((a(i)/(a_max)).*(a(j)/a_max)).^(gamma);
         j=j+1;       
     end
 end

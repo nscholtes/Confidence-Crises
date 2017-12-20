@@ -87,7 +87,7 @@ for i = ActiveBanks
     
     banks(i).balancesheet.assets.external_assets(t,tau) = sum(banks(i).balancesheet.assets.external_asset_port((4*t)-2,:));
     
-    banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau-1);
+    %banks(i).balancesheet.assets.cash(t,tau) = banks(i).balancesheet.assets.cash(t,tau-1);
  
  end
 
@@ -104,40 +104,6 @@ myprint(writeoption,fileID_D,'Step 1: Determine whether firesales are required\r
 myprint(writeoption,fileID_D,'==================================================================================\r\n');
 
 assetprices((4*t)-1,:) = assetprices((4*t)-2,:); % No change in asset prices during firesales
-
-% for i = B_noIB
-%     
-%     banks(i).IBM.B_req_bil_loanrepay      = 0;
-%     banks(i).IBM.B_fin_bil_loanrepay      = 0;
-%         
-%     banks(i).IBM.B_req_tot_loanrepay(t)   = 0; 
-%     banks(i).IBM.B_fin_tot_loanrepay(t)   = 0;
-%     banks(i).IBM.B_prov_tot_loanrepay(t)  = 0;
-%       
-%     banks(i).IBM.canrepay_NoFS(t)         = NaN;
-%     banks(i).firesales.fullrepaywithFS(t) = NaN;
-%     banks(i).firesales.act_FS_vec         = zeros(1,banks(i).balancesheet.assets.num_external_assets(t));
-%     banks(i).firesales.final_firesales(t) = 0;
-%     banks(i).firesales.tot_des_FS(t)      = 0;
-%     
-%     banks(i).IBM.L_bil_repaid_loans    = zeros(1,banks(i).numlending_cps(t));
-%     banks(i).IBM.L_tot_repaid_loans(t) = NaN;
-%     
-%     %banks(i).balancesheet.assets.external_assets(t,tau+1) = banks(i).balancesheet.assets.external_assets(t,tau);
-%     
-%     banks(i).balancesheet.assets.external_asset_holdings((4*t)-1,:) = ...
-%             banks(i).balancesheet.assets.external_asset_holdings((4*t)-2,:);
-%         
-%     banks(i).balancesheet.assets.external_asset_holdings((4*t)-1,:) = ...
-%             banks(i).balancesheet.assets.external_asset_holdings((4*t)-2,:);
-%                     
-%         banks(i).balancesheet.assets.external_asset_port((4*t)-1,:) =...
-%             banks(i).balancesheet.assets.external_asset_port((4*t)-2,:);
-%                     
-%     banks(i).balancesheet.assets.external_asset_port((4*t)-1,:) =...
-%         banks(i).balancesheet.assets.external_asset_port((4*t)-2,:);
-%           
-% end
 
 for i = 1:numel(DBV)
                
@@ -177,12 +143,14 @@ for i = 1:numel(DBV)
         myprint(writeoption,fileID_D,'Borrower %d has no lenders in period %d: no firesales\r\n',DBV(i),t);
         myprint(writeoption,fileID_D,'----------------------------------------------------------------------------------\r\n');
             
-    else
+    elseif ~isempty(banks(DBV(i)).lending_cps)
     
     % Borrowers compute bilateral and total loan obligations (obtained from current period loan+interest matrix)
     
         temp_repaystore = adj_lender_lend_mat(:,DBV(i))';
-        temp_repaystore(temp_repaystore==0)=[];
+        temp_repaystore(temp_repaystore==0) = [];
+        
+        %temp_repaystore
     
         banks(DBV(i)).IBM.B_req_bil_loanrepay    = temp_repaystore;
         banks(DBV(i)).IBM.B_req_tot_loanrepay(t) = sum(banks(DBV(i)).IBM.B_req_bil_loanrepay);
@@ -366,7 +334,8 @@ for i = 1:numel(DBV)
     banks(DBV(i)).firesales.external_asset_firesales(t,:) = banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-2,:)-...
         banks(DBV(i)).balancesheet.assets.external_asset_holdings((4*t)-1,:);
     
-    banks(DBV(i)).firesales.ea_vec(t,banks(DBV(i)).balancesheet.assets.external_asset_ids) = banks(DBV(i)).firesales.external_asset_firesales(t,:);
+    banks(DBV(i)).firesales.ea_vec(t,banks(DBV(i)).balancesheet.assets.external_asset_ids) =...
+        banks(DBV(i)).firesales.external_asset_firesales(t,:);
     
 end
 
@@ -455,6 +424,8 @@ for i = 1:numel(DLV)
     temp_repstore(temp_repstore==0) = [];
     
     banks(DLV(i)).IBM.L_bil_repaid_loans  = temp_repstore;
+    
+    %temp_repstore
 
     clearvars temp_repstore
   
@@ -479,8 +450,13 @@ for i = 1:numel(DLV)
         myprint(writeoption,fileID_D,'Lender %d total repayment to loan ratio = %.3f percent in period %d\r\n',...
             DLV(i),(banks(DLV(i)).IBM.L_tot_repaid_loans(t)./banks(DLV(i)).IBM.L_tot_exp_repay(t))*100,t);
     
-    
-        for j = 1: banks(DLV(i)).numborrowing_cps(t)
+        for j = 1:banks(DLV(i)).numborrowing_cps(t)
+            
+            %DLV(i)
+            %banks(DLV(i)).borrowing_cps(j)
+            %banks(DLV(i)).IBM.L_bil_repaid_loans(j)
+            %banks(DLV(i)).IBM.L_bil_exp_repay(j)
+            
             myprint(writeoption,fileID_D,'--> Lender %d and Borrower %d loan/repayment ratio = %.3f percent\r\n',...
                 DLV(i),banks(DLV(i)).borrowing_cps(j),(banks(DLV(i)).IBM.L_bil_repaid_loans(j)./banks(DLV(i)).IBM.L_bil_exp_repay(j))*100);        
         end
@@ -525,7 +501,7 @@ for i = ActiveBanks
     
 % Liabilities    
     
-    banks(i).balancesheet.liabilities.capital(t,tau) =  banks(i).balancesheet.assets.total(t,tau)...
+    banks(i).balancesheet.liabilities.capital(t,tau) = banks(i).balancesheet.assets.total(t,tau)...
         -  banks(i).balancesheet.liabilities.deposits(t,tau-1);
     
     banks(i).balancesheet.liabilities.total(t,tau) = banks(i).balancesheet.assets.total(t,tau);

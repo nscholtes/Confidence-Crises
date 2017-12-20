@@ -1,7 +1,7 @@
 function[abmresults] = abmresults(banks,n_banks,MRR)
 
-LA_variables  = {'Number of borrowers';'Total requests';'Available reserves';'Provisional loans';...
-    'Hoarding';'Total loans';'Expected repayment';'Final repayment';'Reserves after repayment'};
+LA_variables  = {'Number of borrowers';'Total requests';'Available reserves';'Hoarding multiplier';...
+    'Hoarding_LM';'Hoarding_PM';'Total loans';'Expected repayment';'Final repayment';'Reserves after repayment'};
 BA_variables  = {'Number of lenders';'Total requests';'Total loans';'Required repayment';'Available reserves';...
     'Desired firesales';'Final firesales';'Final repayment';'Reserves after repayment'};
 BS_variables  = {'Cash';'External assets';'Deposits';'Capital'};
@@ -32,9 +32,11 @@ for i = 1:n_banks
     lender_array =   [linspace(1,length(banks(i).IBM.L_tot_requests),length(banks(i).IBM.L_tot_requests));
                                                     banks(i).IBM.NB;
                                                     banks(i).IBM.L_tot_requests;
-                                                    (banks(i).balancesheet.assets.cash(1:banks(i).failtime,2).*(1-MRR))';
-                                                    banks(i).IBM.L_prov_tot_loans;
-                                                    banks(i).IBM.hoarding;
+                                                    banks(i).IBM.L_tot_loans_BH;
+                                                    banks(i).IBM.L_hoardingmultiplier;
+                                                    %(banks(i).balancesheet.assets.cash(1:banks(i).failtime,2).*(1-MRR))';
+                                                    banks(i).IBM.L_tot_requests - banks(i).IBM.L_tot_loans_BH;
+                                                    banks(i).IBM.L_tot_loans_BH - banks(i).IBM.L_tot_loans;
                                                     banks(i).IBM.L_tot_loans;
                                                     banks(i).IBM.L_tot_exp_repay;
                                                     banks(i).IBM.L_tot_repaid_loans;

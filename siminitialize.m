@@ -2,8 +2,8 @@ function [ActiveBanks,ActiveAssets,banks,banksfail,num_ActiveBanks,num_FailedBan
     num_ActiveAssets,num_InactiveAssets,FailCount_vec,FailedBankID_mat,FailedBanks,...
     numedges,mu_A,mu_B,assetprices,NT_matrices,NNT_matrices,NMT_matrices,TM_matrices,...
     IBN_adjmat,OPN_adjmat,Results_banks,Results_agg,Results_av,Results_min,Results_max,Results_dAgg,...
-    total_firesales_vec,d_assetprices,d_firesales,CB_TOTallotment] =....
-    siminitialize(T_sim,n_banks,m_assets,ibn_adjmat_init,opn_adjmat_init,IBN_adjmat,OPN_adjmat)
+    total_firesales_vec,d_assetprices,d_firesales,CB_TOTallotment] =...
+    siminitialize(T_sim,n_banks,m_assets,ibn_adjmat_init,opn_adjmat_init)
 
 T = T_sim;
 
@@ -39,11 +39,11 @@ T = T_sim;
     end
 
 % Summarising and storing information after each round of the ABM
-    Results_banks = zeros(n_banks,T,14); % Collecting balance sheet and interbank market information for each period
-    Results_agg   = zeros(15,T);         % Aggregating across banks
-    Results_av    = zeros(15,T);
-    Results_min   = zeros(15,T);
-    Results_max   = zeros(15,T);
+    Results_banks = zeros(n_banks,T,15); % Collecting balance sheet and interbank market information for each period
+    Results_agg   = zeros(16,T);         % Aggregating across banks
+    Results_av    = zeros(16,T);
+    Results_min   = zeros(16,T);
+    Results_max   = zeros(16,T);
     Results_dAgg  = zeros(6,T);
 
 % Variables associated to bank firesales

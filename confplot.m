@@ -67,7 +67,7 @@ hold on;
 set(a1,'LineStyle','none');     set(a1,'FaceColor',[0.9 0.9 0.9]);
 a2 = area(x,z2,min(YLIM)); 
 set(a2,'LineStyle','none');     set(a2,'FaceColor',[1 1 1]);
-if (~isempty(spec)),     
+if (~isempty(spec)) 
  spec = sprintf('p = plot(x,y,varargin{5}');
  for i=6:nargin,  spec = sprintf('%s,varargin{%d}',spec,i); end % for
  spec = sprintf('%s);',spec);

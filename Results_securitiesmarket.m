@@ -15,7 +15,9 @@ elseif strcmp(results_SM_format,'av_')
     Results_plot_UB = Results(:,:,3,:);
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Asset prices %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Asset prices
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 AP_axis = cell(1,2*T);
 
@@ -45,7 +47,9 @@ for t = 1:T
     end
 end
 
+%-----------------------------------------------------
 % Average asset prices over simulation period
+%-----------------------------------------------------
 figure
 if strcmp(simtype,'crisis')
     rectangle('Position',[4*shocktime(1),0,4*(shocktime(end)-shocktime(1)),1.2],...
@@ -75,11 +79,13 @@ set(gcf,'renderer','painters');
 set(gcf,'Units', 'Centimeters', 'Position', [0, 0, 16, 8],'PaperUnits','Centimeters','PaperSize',[16,8])
 print(gcf,'-dpdf',strcat(fig_output_SM,'assetprices','.pdf'));
 
+%-----------------------------------------------------
 % Asset prices changes due to exogenous shocks and endogenous firesales
+%-----------------------------------------------------
 figure
 subplot(1,2,1)
     if strcmp(simtype,'crisis')
-        rectangle('Position',[shocktime(1),-10,shocktime(end)-shocktime(1),12],...
+        rectangle('Position',[shocktime(1),-6,shocktime(end)-shocktime(1),8],...
             'FaceColor',[0.8 0.8 0.8],'EdgeColor',[0.8 0.8 0.8]);
         hold on
         %plot([FRFAtime(1), FRFAtime(1)],get(gca,'ylim'),'--k','LineWidth',2);
@@ -93,14 +99,14 @@ subplot(1,2,1)
     if strcmp(simtype,'baseline')
         title({'(a) Asset price dynamics','CB refinancing OFF'},'Interpreter','latex')
     elseif strcmp(simtype,'crisis')
-        title({'(b) Asset price dynamics','FRFA OFF'},'Interpreter','latex')
+        title({'(a) FRFA OFF'},'Interpreter','latex')
     end
     legend([h1 h2],{'$\Delta\bar{p}^{APS}$','$\Delta\bar{p}^{MIF}$'},...
         'Location','best','FontSize',6,'Interpreter','latex')
 %----------------------------------------------------------------------------------------------------------
 subplot(1,2,2)
     if strcmp(simtype,'crisis')
-        rectangle('Position',[shocktime(1),-10,shocktime(end)-shocktime(1),12],...
+        rectangle('Position',[shocktime(1),-6,shocktime(end)-shocktime(1),8],...
             'FaceColor',[0.8 0.8 0.8],'EdgeColor',[0.8 0.8 0.8]);
         hold on
         plot([FRFAtime(1), FRFAtime(1)],get(gca,'ylim'),'--k','LineWidth',2);
@@ -114,7 +120,7 @@ subplot(1,2,2)
     if strcmp(simtype,'baseline')
         title({'(a) Asset price dynamics','CB refinancing ON'},'Interpreter','latex')
     elseif strcmp(simtype,'crisis')
-        title({'(b) Asset price dynamics','FRFA ON'},'Interpreter','latex')
+        title({'(b) FRFA ON'},'Interpreter','latex')
     end
     %legend([h1 h2],{'$\Delta\bar{p}^{APS}$','$\Delta\bar{p}^{MIF}$'},'Location','best','FontSize',8,'Interpreter','latex')
 set(gcf,'renderer','painters');
@@ -124,7 +130,9 @@ set(gcf,'renderer','painters');
 set(gcf,'Units', 'Centimeters', 'Position', [0, 0, 16, 8],'PaperUnits','Centimeters','PaperSize',[16,8])
 print(gcf,'-dpdf',strcat(fig_output_SM,'assetprices_components','.pdf'));
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Firesales %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+% Firesales
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 figure
 %----------------------------------------------------------------------------------------------------------
@@ -142,15 +150,15 @@ subplot(1,2,1) % Desired and expected firesales: CB refinancing OFF/FRFA OFF
             boundedline(1:T_sim,Results_plot(10,:),[Results_plot_LB(10,:);Results_plot_UB(10,:)]','alpha');
         elseif strcmp(includebounds,'BOff')
             if strcmp(simtype,'crisis')
-                rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),1.2],...
+                rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),0.25],...
                     'FaceColor',[0.8 0.8 0.8],'EdgeColor',[0.8 0.8 0.8]);
                 hold on;
                 %plot([FRFAtime(1), FRFAtime(1)],get(gca,'ylim'),'--k','LineWidth',2);
                 %hold on;
             end
-            h1 = plot(Results_plot(13,:,1),'Color','r','LineWidth',1.1);
+            h1 = plot(Results_plot(14,:,1),'Color','r','LineWidth',1.1);
             hold on
-            h2 = plot(Results_plot(14,:,1),'Color','b','LineWidth',1.1); 
+            h2 = plot(Results_plot(15,:,1),'Color','b','LineWidth',1.1); 
             xlim([0 T_sim]);
         end
     end
@@ -158,15 +166,15 @@ subplot(1,2,1) % Desired and expected firesales: CB refinancing OFF/FRFA OFF
     if strcmp(simtype,'baseline')
         title({'(a) Firesales','CB refinancing OFF'},'Interpreter','latex')
     elseif strcmp(simtype,'crisis')
-        title({'(b) Firesales','FRFA OFF'},'Interpreter','latex')
+        title({'(a) FRFA OFF'},'Interpreter','latex')
     end
     legend([h1 h2],{'Desired firesales','Final firesales'},'Location','best','FontSize',8,'Interpreter','latex')
 %----------------------------------------------------------------------------------------------------------
 subplot(1,2,2) % Desired and expected firesales: CB refinancing ON/FRFA ON
     if strcmp(results_SM_format,'agg_')
-        plot(Results_plot(13,:,2),'Color','r','LineWidth',1.1) % Total Loan requests
+        plot(Results_plot(14,:,2),'Color','r','LineWidth',1.1) % Total Loan requests
         hold on
-        plot(Results_plot(14,:,2),'Color','b','LineWidth',1.1) % Total Loans
+        plot(Results_plot(15,:,2),'Color','b','LineWidth',1.1) % Total Loans
         title('Interbank repayment volumes')
         hold off
     elseif strcmp(results_SM_format,'av_')
@@ -176,15 +184,15 @@ subplot(1,2,2) % Desired and expected firesales: CB refinancing ON/FRFA ON
             boundedline(1:T_sim,Results_plot(10,:),[Results_plot_LB(10,:);Results_plot_UB(10,:)]','alpha');
         elseif strcmp(includebounds,'BOff')
             if strcmp(simtype,'crisis')
-                rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),1.2],...
+                rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),0.3],...
                     'FaceColor',[0.8 0.8 0.8],'EdgeColor',[0.8 0.8 0.8]);
                 hold on;
                 plot([FRFAtime(1), FRFAtime(1)],get(gca,'ylim'),'--k','LineWidth',2);
                 hold on;    
             end
-            h1 = plot(Results_plot(13,:,2),'Color','r','LineWidth',1.1);
+            h1 = plot(Results_plot(14,:,2),'Color','r','LineWidth',1.1);
             hold on
-            h2 = plot(Results_plot(14,:,2),'Color','b','LineWidth',1.1);
+            h2 = plot(Results_plot(15,:,2),'Color','b','LineWidth',1.1);
             xlim([0 T_sim]);
         end
     end
@@ -192,7 +200,7 @@ subplot(1,2,2) % Desired and expected firesales: CB refinancing ON/FRFA ON
     if strcmp(simtype,'baseline')
         title({'(a) Firesale volumes','CB refinancing ON'},'Interpreter','latex')
     elseif strcmp(simtype,'crisis')
-        title({'(b) Firesale volumes','FRFA ON'},'Interpreter','latex')
+        title({'(b) FRFA ON'},'Interpreter','latex')
     end
     %legend([h1 h2],{'Desired firesales','Final firesales'},'Location','best','FontSize',8,'Interpreter','latex')
 xlabel('Iteration step','Interpreter','latex')
@@ -213,15 +221,15 @@ elseif strcmp(results_SM_format,'av_')
         boundedline(1:T_sim,Results_plot(9,:),[Results_plot_LB(9,:);Results_plot_UB(9,:)]','alpha');
     elseif strcmp(includebounds,'BOff')
         if strcmp(simtype,'crisis')
-            rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),0.2],...
+            rectangle('Position',[shocktime(1),0,shocktime(end)-shocktime(1),0.035],...
                 'FaceColor',[0.8 0.8 0.8],'EdgeColor',[0.8 0.8 0.8]);
             hold on;
             plot([FRFAtime(1), FRFAtime(1)],get(gca,'ylim'),'--k','LineWidth',2);
             hold on;          
         end
-        h1 = plot(Results_plot(13,:,1)-Results_plot(14,:,1),'Color','r','LineWidth',1.1);
+        h1 = plot(Results_plot(14,:,1)-Results_plot(15,:,1),'Color','r','LineWidth',1.1);
         hold on
-        h2 = plot(Results_plot(13,:,2)-Results_plot(14,:,2),'Color','b','LineWidth',1.1);
+        h2 = plot(Results_plot(14,:,2)-Results_plot(15,:,2),'Color','b','LineWidth',1.1);
         xlim([0 T_sim]);
     end
 end

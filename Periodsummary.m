@@ -19,13 +19,14 @@ total_deposits_vec       = Results_banks(:,6);
 total_capital_vec        = Results_banks(:,7);
 
 total_requests_vec      = Results_banks(:,8);
-total_hoarding_vec      = Results_banks(:,9);
-total_loans_vec         = Results_banks(:,10);
-total_exp_repay_vec     = Results_banks(:,11);
-total_repayment_vec     = Results_banks(:,12);
+total_loans_BH_vec      = Results_banks(:,9);
+total_hoarding_vec      = Results_banks(:,10);
+total_loans_vec         = Results_banks(:,11);
+total_exp_repay_vec     = Results_banks(:,12);
+total_repayment_vec     = Results_banks(:,13);
 
-total_des_FS_vec        = Results_banks(:,13);
-total_act_FS_vec        = Results_banks(:,14);
+total_des_FS_vec        = Results_banks(:,14);
+total_act_FS_vec        = Results_banks(:,15);
 
 % Aggregate across banks
 total_assets         = Results_agg(1,:);
@@ -38,13 +39,14 @@ total_deposits       = Results_agg(6,:);
 total_capital        = Results_agg(7,:);
 
 total_requests      = Results_agg(8,:);
-total_hoarding      = Results_agg(9,:);
-total_loans         = Results_agg(10,:);
-total_exp_repay     = Results_agg(11,:);
-total_repayment     = Results_agg(12,:);
+total_loans_BH      = Results_agg(9,:);
+total_hoarding      = Results_agg(10,:);
+total_loans         = Results_agg(11,:);
+total_exp_repay     = Results_agg(12,:);
+total_repayment     = Results_agg(13,:);
 
-total_des_FS        = Results_agg(13,:);
-total_act_FS        = Results_agg(14,:);
+total_des_FS        = Results_agg(14,:);
+total_act_FS        = Results_agg(15,:);
 
 % Average over banks
 av_assets         = Results_av(1,:);
@@ -57,15 +59,16 @@ av_deposits       = Results_av(6,:);
 av_capital        = Results_av(7,:);
 
 av_requests      = Results_av(8,:);
-av_hoarding      = Results_av(9,:);
-av_loans         = Results_av(10,:);
-av_exp_repay     = Results_av(11,:);
-av_repayment     = Results_av(12,:);
+av_loans_BH      = Results_av(9,:);
+av_hoarding      = Results_av(10,:);
+av_loans         = Results_av(11,:);
+av_exp_repay     = Results_av(12,:);
+av_repayment     = Results_av(13,:);
 
-av_des_FS        = Results_av(13,:);
-av_act_FS        = Results_av(14,:);
+av_des_FS        = Results_av(14,:);
+av_act_FS        = Results_av(15,:);
 
-av_IBrate        = Results_av(15,:);
+av_IBrate        = Results_av(16,:);
 
 % Min over banks
 min_assets         = Results_min(1,:);
@@ -79,15 +82,16 @@ min_deposits       = Results_min(6,:);
 min_capital        = Results_min(7,:);
 
 min_requests       = Results_min(8,:);
-min_hoarding       = Results_min(9,:);
-min_loans          = Results_min(10,:);
-min_exp_repay      = Results_min(11,:);
-min_repayment      = Results_min(12,:);
+min_loans_BH       = Results_min(9,:);
+min_hoarding       = Results_min(10,:);
+min_loans          = Results_min(11,:);
+min_exp_repay      = Results_min(12,:);
+min_repayment      = Results_min(13,:);
 
-min_des_FS         = Results_min(13,:);
-min_act_FS         = Results_min(14,:);
+min_des_FS         = Results_min(14,:);
+min_act_FS         = Results_min(15,:);
 
-min_IBrate        = Results_min(15,:);
+min_IBrate         = Results_min(16,:);
 
 
 % Max over banks
@@ -102,15 +106,16 @@ max_deposits       = Results_max(6,:);
 max_capital        = Results_max(7,:);
 
 max_requests       = Results_max(8,:);
-max_hoarding       = Results_max(9,:);
-max_loans          = Results_max(10,:);
-max_exp_repay      = Results_max(11,:);
-max_repayment      = Results_max(12,:);
+max_loans_BH       = Results_max(9,:);
+max_hoarding       = Results_max(10,:);
+max_loans          = Results_max(11,:);
+max_exp_repay      = Results_max(12,:);
+max_repayment      = Results_max(13,:);
 
-max_des_FS         = Results_max(13,:);
-max_act_FS         = Results_max(14,:);
+max_des_FS         = Results_max(14,:);
+max_act_FS         = Results_max(15,:);
 
-max_IBrate         = Results_max(15,:);
+max_IBrate         = Results_max(16,:);
 
 % Change in aggregate variables
 d_total_assets       = Results_dAgg(1);
@@ -149,24 +154,24 @@ for i = ActiveBanks
 end
 
 % Summing over banks
-total_assets(end)         = sum(total_assets_vec);
-total_cash(end)           = sum(total_cash_vec);
-total_ext_assets(end)     = sum(total_ext_assets_vec);
+total_assets(end)         = nansum(total_assets_vec);
+total_cash(end)           = nansum(total_cash_vec);
+total_ext_assets(end)     = nansum(total_ext_assets_vec);
 total_investment(end)     = nansum(total_investment_vec);
 total_des_investment(end) = nansum(total_des_investment_vec);
 
-total_deposits(end)       = sum(total_deposits_vec);
-total_capital(end)        = sum(total_capital_vec);
+total_deposits(end)       = nansum(total_deposits_vec);
+total_capital(end)        = nansum(total_capital_vec);
 
 % Mean across banks
-av_assets(end)         = mean(total_assets_vec); 
-av_cash(end)           = mean(total_cash_vec);
-av_ext_assets(end)     = mean(total_ext_assets_vec);
-av_investment(end)     = mean(total_investment_vec);
-av_des_investment(end) = mean(total_des_investment_vec);
+av_assets(end)         = nanmean(total_assets_vec); 
+av_cash(end)           = nanmean(total_cash_vec);
+av_ext_assets(end)     = nanmean(total_ext_assets_vec);
+av_investment(end)     = nanmean(total_investment_vec);
+av_des_investment(end) = nanmean(total_des_investment_vec);
 
-av_deposits(end)       = mean(total_deposits_vec);
-av_capital(end)        = mean(total_capital_vec);
+av_deposits(end)       = nanmean(total_deposits_vec);
+av_capital(end)        = nanmean(total_capital_vec);
 
 % Min across banks
 min_assets(end)         = min(total_assets_vec); 
@@ -260,6 +265,7 @@ fprintf(fileID_S,'==============================================================
 for i = ActiveBanks
             
     total_requests_vec(i)  = banks(i).IBM.L_tot_requests(t);
+    total_loans_BH_vec(i)  = banks(i).IBM.L_tot_loans_BH(t);
     total_hoarding_vec(i)  = banks(i).IBM.hoarding(t);
     total_loans_vec(i)     = banks(i).IBM.L_tot_loans(t);
     total_exp_repay_vec(i) = banks(i).IBM.L_tot_exp_repay(t);
@@ -272,6 +278,7 @@ IBrate_vec = nonzeros(IBratemat);
 
 % Summing over banks
 total_requests(end)  = nansum(total_requests_vec);
+total_loans_BH(end)  = nansum(total_loans_BH_vec);
 total_hoarding(end)  = nansum(total_hoarding_vec);
 total_loans(end)     = nansum(total_loans_vec);
 total_exp_repay(end) = nansum(total_exp_repay_vec);
@@ -279,6 +286,7 @@ total_repayment(end) = nansum(total_repayment_vec);
 
 % Mean across banks
 av_requests(end)  = nanmean(total_requests_vec);
+av_loans_BH(end)  = nanmean(total_loans_BH_vec);
 av_hoarding(end)  = nanmean(total_hoarding_vec);
 av_loans(end)     = nanmean(total_loans_vec);
 av_exp_repay(end) = nanmean(total_exp_repay_vec);
@@ -288,6 +296,7 @@ av_IBrate(end)  = mean(IBrate_vec);
 
 % Min across banks
 min_requests(end)  = min(total_requests_vec);
+min_loans_BH(end)  = min(total_loans_BH_vec);
 min_hoarding(end)  = min(total_hoarding_vec);
 min_loans(end)     = min(total_loans_vec);
 min_exp_repay(end) = min(total_exp_repay_vec);
@@ -303,6 +312,7 @@ end
 
 % Max across banks
 max_requests(end)  = max(total_requests_vec);
+max_loans_BH(end)  = max(total_loans_BH_vec);
 max_hoarding(end)  = max(total_hoarding_vec);
 max_loans(end)     = max(total_loans_vec);
 max_exp_repay(end) = max(total_exp_repay_vec);
@@ -445,13 +455,14 @@ Results_banks(:,6)  = total_deposits_vec;
 Results_banks(:,7)  = total_capital_vec;
 
 Results_banks(:,8)  = total_requests_vec;
-Results_banks(:,9)  = total_hoarding_vec; 
-Results_banks(:,10) = total_loans_vec; 
-Results_banks(:,11) = total_exp_repay_vec;
-Results_banks(:,12) = total_repayment_vec;
+Results_banks(:,9)  = total_loans_BH_vec;
+Results_banks(:,10)  = total_hoarding_vec; 
+Results_banks(:,11) = total_loans_vec; 
+Results_banks(:,12) = total_exp_repay_vec;
+Results_banks(:,13) = total_repayment_vec;
 
-Results_banks(:,13) = total_des_FS_vec; 
-Results_banks(:,14) = total_act_FS_vec; 
+Results_banks(:,14) = total_des_FS_vec; 
+Results_banks(:,15) = total_act_FS_vec; 
 
 % TOT_sum: 1xT matrices summing over all banks
 Results_agg(1,end)  = total_assets(end);
@@ -465,13 +476,14 @@ Results_agg(6,end)  = total_deposits(end);
 Results_agg(7,end)  = total_capital(end);
 
 Results_agg(8,end)  = total_requests(end);
-Results_agg(9,end)  = total_hoarding(end); 
-Results_agg(10,end) = total_loans(end); 
-Results_agg(11,end) = total_exp_repay(end);
-Results_agg(12,end) = total_repayment(end); 
+Results_agg(9,end)  = total_loans_BH(end);
+Results_agg(10,end)  = total_hoarding(end); 
+Results_agg(11,end) = total_loans(end); 
+Results_agg(12,end) = total_exp_repay(end);
+Results_agg(13,end) = total_repayment(end); 
 
-Results_agg(13,end) = total_des_FS(end);
-Results_agg(14,end) = total_act_FS(end); 
+Results_agg(14,end) = total_des_FS(end);
+Results_agg(15,end) = total_act_FS(end); 
 
 % TOT_av: 1xT matrix containing average across banks in each time period
 Results_av(1,end)  = av_assets(end);
@@ -485,15 +497,16 @@ Results_av(6,end)  = av_deposits(end);
 Results_av(7,end)  = av_capital(end);
 
 Results_av(8,end)  = av_requests(end);
-Results_av(9,end)  = av_hoarding(end); 
-Results_av(10,end) = av_loans(end); 
-Results_av(11,end) = av_exp_repay(end);
-Results_av(12,end) = av_repayment(end); 
+Results_av(9,end)  = av_loans_BH(end);
+Results_av(10,end) = av_hoarding(end); 
+Results_av(11,end) = av_loans(end); 
+Results_av(12,end) = av_exp_repay(end);
+Results_av(13,end) = av_repayment(end); 
 
-Results_av(13,end) = av_des_FS(end);
-Results_av(14,end) = av_act_FS(end); 
+Results_av(14,end) = av_des_FS(end);
+Results_av(15,end) = av_act_FS(end); 
 
-Results_av(15,end) = av_IBrate(end);
+Results_av(16,end) = av_IBrate(end);
 
 % TOT_min: 1xT matrix containing minimum across banks in each time period
 Results_min(1,end)  = min_assets(end);
@@ -507,15 +520,16 @@ Results_min(6,end)  = min_deposits(end);
 Results_min(7,end)  = min_capital(end);
 
 Results_min(8,end)  = min_requests(end);
-Results_min(9,end)  = min_hoarding(end); 
-Results_min(10,end) = min_loans(end); 
-Results_min(11,end) = min_exp_repay(end);
-Results_min(12,end) = min_repayment(end); 
+Results_min(9,end)  = min_loans_BH(end);
+Results_min(10,end) = min_hoarding(end); 
+Results_min(11,end) = min_loans(end); 
+Results_min(12,end) = min_exp_repay(end);
+Results_min(13,end) = min_repayment(end); 
 
-Results_min(13,end) = min_des_FS(end);
-Results_min(14,end) = min_act_FS(end); 
+Results_min(14,end) = min_des_FS(end);
+Results_min(15,end) = min_act_FS(end); 
 
-Results_min(15,end) = min_IBrate(end);
+Results_min(16,end) = min_IBrate(end);
 
 % TOT_max: 1xT matrix containing minimum across banks in each time period
 Results_max(1,end)  = max_assets(end);
@@ -529,15 +543,16 @@ Results_max(6,end)  = max_deposits(end);
 Results_max(7,end)  = max_capital(end);
 
 Results_max(8,end)  = max_requests(end);
-Results_max(9,end)  = max_hoarding(end); 
-Results_max(10,end) = max_loans(end); 
-Results_max(11,end) = max_exp_repay(end);
-Results_max(12,end) = max_repayment(end); 
+Results_max(9,end)  = max_loans_BH(end);
+Results_max(10,end) = max_hoarding(end); 
+Results_max(11,end) = max_loans(end); 
+Results_max(12,end) = max_exp_repay(end);
+Results_max(13,end) = max_repayment(end); 
 
-Results_max(13,end) = max_des_FS(end);
-Results_max(14,end) = max_act_FS(end); 
+Results_max(14,end) = max_des_FS(end);
+Results_max(15,end) = max_act_FS(end); 
 
-Results_max(15,end) = max_IBrate(end);
+Results_max(16,end) = max_IBrate(end);
 
 % Percent changes in variables between consecutive time periods
 Results_dAgg(1) = d_total_assets;

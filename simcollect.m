@@ -83,9 +83,9 @@ mu_B(1,:) = mean(sim_mu_B);
 mu_B(2,:) = min(sim_mu_B);
 mu_B(3,:) = max(sim_mu_B);
 
-CB_TOTallotment(1,:) = mean(sim_CB_TOTallotment(:,:,1));
-CB_TOTallotment(2,:) = mean(sim_CB_TOTallotment(:,:,2));
-CB_TOTallotment(3,:) = mean(sim_CB_TOTallotment(:,:,3));
+CB_TOTallotment(1,:) = mean(sim_CB_TOTallotment(:,:,1)); % Borrower refinancing
+CB_TOTallotment(2,:) = mean(sim_CB_TOTallotment(:,:,2)); % Lender refinancing
+CB_TOTallotment(3,:) = mean(sim_CB_TOTallotment(:,:,3)); % FRFA refinancing
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Dynamic adjacency matrices across simulations and policy scenarios
